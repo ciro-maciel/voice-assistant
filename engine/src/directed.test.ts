@@ -20,7 +20,7 @@ test("the question carries the recent exchanges, the draft and the new utterance
     { role: "user", text: "no editor, quando clicar fora" },
     { role: "tool", text: "Bash: ls" },
     { role: "assistant", text: "Quer que eu mude o comportamento do clique?" },
-  ], ["no editor"], "Ana");
+  ], ["no editor"], "Ana", "pt-BR");
   expect(q).toContain("Ana: no editor, quando clicar fora");
   expect(q).toContain("Assistente: Quer que eu mude o comportamento do clique?");
   expect(q).not.toContain("Bash: ls");

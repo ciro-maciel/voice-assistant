@@ -8,7 +8,7 @@ import { matchWake, normalize } from "./wake";
 export const CONTINUE_MS = 6_000;
 
 export type Action =
-  | { kind: "ignore"; reason: string }
+  | { kind: "ignore"; reason: "noName" | "echo" | "busy" }
   | { kind: "summon" }                              // name alone: chime and wait
   | { kind: "send"; text: string }                  // a question for the brain
   | { kind: "bargeIn"; text: string }               // he spoke over me: stop, then maybe send
@@ -72,7 +72,7 @@ export class Conversation {
 
     // While I talk or work, only the name gets through: everything else may be my own echo.
     if (overlapsMyVoice || m.isBusy) {
-      if (!wake.hasWake) return { kind: "ignore", reason: overlapsMyVoice ? "eco" : "ocupado" };
+      if (!wake.hasWake) return { kind: "ignore", reason: overlapsMyVoice ? "echo" : "busy" };
       this.open(this.summonMs, m.now);
       return { kind: "bargeIn", text: wake.rest };
     }
@@ -91,7 +91,7 @@ export class Conversation {
       this.close();
       return { kind: "send", text: wake.rest };
     }
-    return { kind: "ignore", reason: "sem o nome" };
+    return { kind: "ignore", reason: "noName" };
   }
 
   // After I finish answering, he can reply without saying the name.

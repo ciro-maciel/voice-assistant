@@ -31,11 +31,11 @@ e o [Claude Code](https://docs.anthropic.com/en/docs/claude-code), com login fei
 | "Assistant" sozinho | toca um som e espera o pedido por 8 segundos |
 | responde depois que ele termina de falar | aceita sem o nome por 60 segundos |
 | "Assistant" enquanto ele fala ou trabalha | para na hora e escuta |
-| qualquer outra coisa | vai para um rascunho; diga "pode fazer" para executar, ou o nome |
+| qualquer outra coisa | vai para um rascunho; diga "pode fazer" (em inglês, "go ahead") para executar, ou o nome |
 
 Antes de usar uma ferramenta, ele diz o que vai fazer. Ler, pesquisar e editar arquivos locais ele faz sem perguntar. Push, deploy, publicar, mandar mensagem a alguém, apagar e pagar esperam o seu sim falado naquela conversa; a lista é sua para mudar no app.
 
-Hoje os prompts, as regras de fala e a interface são em português.
+Inglês e português do Brasil, seguindo o idioma do Mac: a interface, as frases faladas, as regras de fala e os prompts enviados ao Claude. A chave `language` da configuração define o idioma da conversa separado do Mac.
 
 ## Como funciona
 
@@ -67,16 +67,17 @@ Tudo o que é pessoal fica num arquivo fora do repositório, `~/.config/voice-as
 
 | Chave | O que faz | Padrão |
 | --- | --- | --- |
-| `wakeWords` | O nome primeiro, depois como o Whisper o escuta errado | `["assistant", "assistente"]` |
+| `language` | O idioma da conversa: `"en"` ou `"pt-BR"` (regras de fala, frases faladas, padrão do Whisper) | o idioma do Mac (pt → português, senão inglês) |
+| `wakeWords` | O nome primeiro, depois como o Whisper o escuta errado | `["assistant", "assistente"]`; em inglês `["assistant"]` |
 | `userName` | Como as instruções se referem a você | "a pessoa" |
 | `workingDir` | Onde a sessão do Claude Code roda (o `CLAUDE.md` dela) | sua pasta pessoal |
 | `folders` | Pastas extras que ele pode ler e editar (`--add-dir`) | nenhuma |
 | `instructions` | Linhas somadas às regras de fala | nenhuma |
 | `inputPreference` | Microfones por nome, vence o primeiro conectado | o padrão do sistema |
-| `whisperModelsDir`, `whisperModel`, `whisperLanguage`, `whisperPrompt` | Whisper local | `…/voice-assistant/models`, `large-v3-turbo`, `pt` |
+| `whisperModelsDir`, `whisperModel`, `whisperLanguage`, `whisperPrompt` | Whisper local | `…/voice-assistant/models`, `large-v3-turbo`, o idioma da conversa (`pt` ou `en`) |
 | `fishVoiceId`, `voiceName`, `voiceSpeed`, `fishModel` | Voz da Fish Audio | nenhuma (voz do Mac), 1.0, `s2.1-pro` |
 | `fishApiKeyFile` | Um arquivo dotenv com `FISH_API_KEY=` para quando o app não tem o ambiente do shell | nenhum |
-| `fallbackVoice` | A voz do Mac (`say -v ?`) | Luciana |
+| `fallbackVoice` | A voz do Mac (`say -v ?`) | Luciana; em inglês, Samantha |
 | `brainModel` | Modelo do Claude na conversa | `claude-haiku-5-5` |
 | `dataDir` | Histórico, diário, sessão e os ajustes do app | `~/Library/Application Support/voice-assistant` |
 
@@ -115,7 +116,7 @@ O `scripts/build.sh` assina com um certificado Developer ID Application quando o
 ## Limites
 
 - Só Apple Silicon e macOS 14 ou mais novo.
-- Prompts e interface em português.
+- Só inglês e português do Brasil, seguindo o idioma do Mac.
 - Um modelo só conversa e trabalha: numa tarefa longa, ele diz o que vai fazer e fica em silêncio até terminar.
 - Não abre sozinho no login.
 

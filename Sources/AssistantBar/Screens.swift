@@ -8,14 +8,15 @@ enum Pane: String, CaseIterable, Identifiable {
     case now, history, listening, voice, brain
     var id: String { rawValue }
 
-    var group: String { self == .now || self == .history ? "Conversa" : "Ajustes" }
+    /// The group's id; its title is L("group.<id>").
+    var group: String { self == .now || self == .history ? "conversation" : "settings" }
     var title: String {
         switch self {
-        case .now: return "Agora"
-        case .history: return "Histórico"
-        case .listening: return "Escuta"
-        case .voice: return "Voz"
-        case .brain: return "Cérebro"
+        case .now: return L("pane.now")
+        case .history: return L("pane.history")
+        case .listening: return L("pane.listening")
+        case .voice: return L("pane.voice")
+        case .brain: return L("pane.brain")
         }
     }
     var icon: String {
@@ -29,11 +30,11 @@ enum Pane: String, CaseIterable, Identifiable {
     }
     var subtitle: String {
         switch self {
-        case .now: return "A conversa em curso: o que ele ouviu, o que fez e o que respondeu. Escreva embaixo quando não der para falar."
-        case .history: return "Cada conversa, com o que foi pedido, quantas respostas teve e quanto custou."
-        case .listening: return "O nome que o chama, o microfone que ele usa e quanto tempo ele espera por uma resposta."
-        case .voice: return "A voz que responde, a velocidade e o que acontece quando a Fish não responde."
-        case .brain: return "A sessão do Claude Code por trás da voz: modelo, pastas que ela alcança e o que pede confirmação."
+        case .now: return L("pane.now.subtitle")
+        case .history: return L("pane.history.subtitle")
+        case .listening: return L("pane.listening.subtitle")
+        case .voice: return L("pane.voice.subtitle")
+        case .brain: return L("pane.brain.subtitle")
         }
     }
 }
@@ -52,8 +53,8 @@ struct AppView: View {
     var body: some View {
         MacShellView {
             MacSidebar(app: "Assistant") {
-                ForEach(["Conversa", "Ajustes"], id: \.self) { group in
-                    MacSidebarGroup(title: group) {
+                ForEach(["conversation", "settings"], id: \.self) { group in
+                    MacSidebarGroup(title: L("group.\(group)")) {
                         ForEach(Pane.allCases.filter { $0.group == group }) { p in
                             MacSidebarItem(icon: p.icon, title: p.title,
                                            badge: p == .history && !model.history.isEmpty ? "\(model.history.count)" : nil,
@@ -62,7 +63,7 @@ struct AppView: View {
                     }
                 }
             } status: {
-                MacStatusLine(on: model.isMicOn, onText: "Microfone ligado", offText: "Microfone desligado") {
+                MacStatusLine(on: model.isMicOn, onText: L("status.micOn"), offText: L("status.micOff")) {
                     NSWorkspace.shared.open(microphoneSettingsURL)
                 }
             }
@@ -83,17 +84,17 @@ struct AppView: View {
     @ViewBuilder private var actions: some View {
         switch nav.pane {
         case .now:
-            Button { model.newConversation() } label: { ButtonLabel(title: "Conversa nova", icon: "message-plus") }
+            Button { model.newConversation() } label: { ButtonLabel(title: L("button.newConversation"), icon: "message-plus") }
                 .buttonStyle(ZenButtonStyle(kind: .secondary))
-            Button { model.stop() } label: { ButtonLabel(title: "Parar", icon: "player-stop") }
+            Button { model.stop() } label: { ButtonLabel(title: L("menu.stop"), icon: "player-stop") }
                 .buttonStyle(ZenButtonStyle(kind: .secondary))
-            Button { model.listen() } label: { ButtonLabel(title: "Ouvir agora", icon: "microphone", color: .white) }
+            Button { model.listen() } label: { ButtonLabel(title: L("menu.listen"), icon: "microphone", color: .white) }
                 .buttonStyle(ZenButtonStyle())
         case .voice:
-            Button { model.sample() } label: { ButtonLabel(title: "Ouvir amostra", icon: "player-play", color: .white) }
+            Button { model.sample() } label: { ButtonLabel(title: L("button.sample"), icon: "player-play", color: .white) }
                 .buttonStyle(ZenButtonStyle())
         case .brain:
-            Button { NSWorkspace.shared.open(logURL) } label: { ButtonLabel(title: "Abrir log", icon: "file-text") }
+            Button { NSWorkspace.shared.open(logURL) } label: { ButtonLabel(title: L("button.openLog"), icon: "file-text") }
                 .buttonStyle(ZenButtonStyle(kind: .secondary))
         default:
             EmptyView()
@@ -112,47 +113,47 @@ struct NowScreen: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             CellRow {
-                Cell(label: "Estado", note: stateNote) {
+                Cell(label: L("now.state"), note: stateNote) {
                     StateGlyph(state: model.state, level: level)
                     Text(model.state.word).zenDisplay(22).lineLimit(1).minimumScaleFactor(0.7)
                 }
-                Cell(label: "Microfone", note: micNote) {
+                Cell(label: L("now.microphone"), note: micNote) {
                     Text(model.snapshot.map { Format.device($0.device) } ?? "—").zenDisplay(22).lineLimit(2)
                 }
-                Cell(label: "Sessão", note: sessionNote) {
+                Cell(label: L("now.session"), note: sessionNote) {
                     Text(model.snapshot.map { Format.model($0.session.model) } ?? "—").zenDisplay(22)
                 }
-                Cell(label: "Nesta conversa", note: costNote, isLast: true) {
+                Cell(label: L("now.thisConversation"), note: costNote, isLast: true) {
                     Text(Format.usd(model.snapshot?.conversation.costUsd ?? 0)).zenDisplay(22)
                 }
             }
             .padding(.bottom, 28)
 
             if let t = model.snapshot?.timings {
-                BlockLabel(text: "Última resposta")
+                BlockLabel(text: L("now.lastAnswer"))
                 CellRow {
-                    Cell(label: "Transcrição", note: t.isSpoken ? "do fim da sua fala ao texto, no Whisper" : "escrita, sem transcrição") {
+                    Cell(label: L("now.transcription"), note: t.isSpoken ? L("now.transcription.note") : L("now.transcription.typed")) {
                         Text(t.transcribeMs.map(Format.seconds) ?? "—").zenDisplay(22)
                     }
-                    Cell(label: "Modelo", note: "da pergunta à primeira palavra do Claude") {
+                    Cell(label: L("now.model"), note: L("now.model.note")) {
                         Text(Format.seconds(t.modelMs)).zenDisplay(22)
                     }
-                    Cell(label: "Voz", note: "da primeira frase pronta ao som, na Fish") {
+                    Cell(label: L("now.voice"), note: L("now.voice.note")) {
                         Text(Format.seconds(t.voiceMs)).zenDisplay(22)
                     }
-                    Cell(label: "Até ouvir", note: t.isSpoken ? "do fim da fala ao primeiro som; não conta os 0,75 s de silêncio que fecham a fala" : "do envio ao primeiro som", isLast: true) {
+                    Cell(label: L("now.untilHeard"), note: t.isSpoken ? L("now.untilHeard.note") : L("now.untilHeard.typed"), isLast: true) {
                         Text(Format.seconds(t.totalMs)).zenDisplay(22)
                     }
                 }
                 .padding(.bottom, 28)
             }
 
-            BlockLabel(text: "Conversa")
+            BlockLabel(text: L("now.conversation"))
             let rows = model.snapshot?.conversation.rows ?? []
             if rows.isEmpty {
                 Rows {
-                    Text("Nenhuma conversa ainda. Diga \u{201C}\(model.snapshot?.settings.wakeWords.dropFirst().first ?? "assistente")\u{201D} ou aperte ⌥ Espaço."
-                         + ((model.snapshot?.memory?.journalDays ?? 0) > 0 ? " Ele lembra o resumo das conversas recentes." : ""))
+                    Text(L("now.empty", model.snapshot?.settings.wakeWords.first ?? "assistant")
+                         + ((model.snapshot?.memory?.journalDays ?? 0) > 0 ? " " + L("now.empty.remembers") : ""))
                         .zenBody(13).padding(16).frame(maxWidth: .infinity, alignment: .leading)
                 }
             } else {
@@ -168,14 +169,14 @@ struct NowScreen: View {
             HeardBlock(model: model)
 
             HStack(spacing: 12) {
-                TextField("Escreva em vez de falar", text: $draft)
+                TextField(L("now.typeInstead"), text: $draft)
                     .textFieldStyle(.plain)
                     .font(Zen.font(15, .medium))
                     .foregroundStyle(Zen.gray9)
                     .frame(height: 44)
                     .overlay(alignment: .bottom) { Rectangle().fill(Zen.gray3).frame(height: 1) }
                     .onSubmit(send)
-                Button(action: send) { Text("Enviar") }
+                Button(action: send) { Text(L("now.send")) }
                     .buttonStyle(ZenButtonStyle(kind: .secondary))
                     .disabled(draft.trimmingCharacters(in: .whitespaces).isEmpty)
             }
@@ -192,29 +193,29 @@ struct NowScreen: View {
 
     private var stateNote: String {
         switch model.state {
-        case .thinking, .speaking: return "diga o nome para interromper"
-        case .muted: return model.snapshot?.isMuted == true ? "silenciado no menu da barra" : "o clique no rodapé abre os Ajustes"
-        case .offline: return "o processo de voz não respondeu"
-        case .waiting: return "diga o nome ou aperte ⌥ Espaço"
-        case .drafting: return "diga \u{201C}\(model.snapshot?.settings.actionPhrases?.first ?? "pode fazer")\u{201D} para executar"
-        default: return "fale sem precisar do nome"
+        case .thinking, .speaking: return L("note.interrupt")
+        case .muted: return model.snapshot?.isMuted == true ? L("note.mutedInMenu") : L("note.openSettings")
+        case .offline: return L("note.offline")
+        case .waiting: return L("note.waiting")
+        case .drafting: return L("note.drafting", model.snapshot?.settings.actionPhrases?.first ?? L("default.actionPhrase"))
+        default: return L("note.noNameNeeded")
         }
     }
 
     private var micNote: String {
         guard model.snapshot != nil else { return "" }
-        return "o primeiro conectado da lista em Escuta"
+        return L("note.microphone")
     }
 
     private var sessionNote: String {
         guard let s = model.snapshot?.session else { return "" }
-        guard s.startedAt > 0 else { return "Claude Code \(s.claudeVersion), reabrindo" }
-        return "Claude Code \(s.claudeVersion), \(Format.since(s.startedAt, now: model.now))"
+        guard s.startedAt > 0 else { return L("note.session.reopening", s.claudeVersion) }
+        return L("note.session", s.claudeVersion, Format.since(s.startedAt, now: model.now))
     }
 
     private var costNote: String {
         let n = model.snapshot?.conversation.answers ?? 0
-        return "diferença do custo acumulado que a sessão informa, em \(n) \(n == 1 ? "resposta" : "respostas")"
+        return L("note.cost", count: n)
     }
 }
 
@@ -237,8 +238,8 @@ struct ConversationRow: View {
 
     private var who: String {
         switch row.role {
-        case "user": return "Você"
-        case "tool": return "Ferramenta"
+        case "user": return L("row.you")
+        case "tool": return L("row.tool")
         default: return "Assistant"
         }
     }
@@ -255,7 +256,7 @@ struct ConversationRow: View {
     }
 
     private var meta: String {
-        if row.role == "tool" { return row.durationMs.map(Format.seconds) ?? "em curso" }
+        if row.role == "tool" { return row.durationMs.map(Format.seconds) ?? L("row.running") }
         return row.isOpen == true ? "" : Format.clock(row.at)
     }
 }
@@ -270,12 +271,12 @@ struct DraftBlock: View {
         let draft = model.snapshot?.draft ?? []
         if !draft.isEmpty {
             HStack(alignment: .firstTextBaseline) {
-                BlockLabel(text: "Rascunho")
+                BlockLabel(text: L("draft.title"))
                 Spacer()
                 HStack(spacing: 8) {
-                    Button { model.clearDraft() } label: { ButtonLabel(title: "Limpar", icon: "x") }
+                    Button { model.clearDraft() } label: { ButtonLabel(title: L("button.clear"), icon: "x") }
                         .buttonStyle(ZenButtonStyle(kind: .secondary, height: 30))
-                    Button { model.act() } label: { ButtonLabel(title: "Executar", icon: "player-play") }
+                    Button { model.act() } label: { ButtonLabel(title: L("button.run"), icon: "player-play") }
                         .buttonStyle(ZenButtonStyle(kind: .secondary, height: 30))
                 }
                 .padding(.bottom, 10)
@@ -292,28 +293,35 @@ struct DraftBlock: View {
                     .padding(.horizontal, 16).padding(.vertical, 10)
                 }
             }
-            Text("Diga \u{201C}\(model.snapshot?.settings.actionPhrases?.first ?? "pode fazer")\u{201D} e o Claude monta o pedido a partir destes trechos.")
+            Text(L("draft.note", model.snapshot?.settings.actionPhrases?.first ?? L("default.actionPhrase")))
                 .zenNote().padding(.top, 10)
         }
         }
     }
 }
 
-/// "O que ouvi" on Agora: the last things heard in two minutes, and what was done with each.
+/// "What I heard" on Now: the last things heard in two minutes, and what was done with each.
 struct HeardBlock: View {
     @ObservedObject var model: AssistantModel
+
+    /// The engine sends an id (engine/src/main.ts, noteHeard); an unknown one shows as it came.
+    static func action(_ id: String) -> String {
+        let key = "heard.action.\(id)"
+        let text = L(key)
+        return text == key ? id : text
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
         // What was heard in the last two minutes: a request that went nowhere shows its reason.
         let heard = (model.snapshot?.heard ?? []).filter { model.now.timeIntervalSince1970 * 1000 - $0.at < 120_000 }.prefix(4)
         if !heard.isEmpty {
-            BlockLabel(text: "O que ouvi").padding(.top, 28)
+            BlockLabel(text: L("heard.title")).padding(.top, 28)
             Rows {
                 ForEach(Array(heard.enumerated()), id: \.element.id) { i, h in
                     if i > 0 { RowRule() }
                     HStack(alignment: .firstTextBaseline, spacing: 16) {
-                        Text(h.action).zenLabel(10, color: h.action == "aceito" ? Zen.gray5 : Zen.gray9).frame(width: 110, alignment: .leading)
+                        Text(Self.action(h.action)).zenLabel(10, color: h.action == "accepted" ? Zen.gray5 : Zen.gray9).frame(width: 110, alignment: .leading)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(h.text).zenData(13, color: Zen.gray9).fixedSize(horizontal: false, vertical: true)
                             if let reason = h.reason { Text(reason).zenData(12, color: Zen.gray5).fixedSize(horizontal: false, vertical: true) }
@@ -336,18 +344,18 @@ struct HistoryScreen: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            BlockLabel(text: "Conversas")
+            BlockLabel(text: L("history.title"))
             Rows {
                 if model.history.isEmpty {
-                    Text("Nenhuma conversa guardada ainda.").zenBody(13).padding(16).frame(maxWidth: .infinity, alignment: .leading)
+                    Text(L("history.empty")).zenBody(13).padding(16).frame(maxWidth: .infinity, alignment: .leading)
                 }
                 ForEach(Array(model.history.enumerated()), id: \.element.id) { i, c in
                     if i > 0 { RowRule() }
                     DataRow(label: Format.day(c.startedAt), value: c.firstQuestion,
-                            detail: "\(c.answers) \(c.answers == 1 ? "resposta" : "respostas") · \(Format.usd(c.costUsd))", labelWidth: 120)
+                            detail: L("history.answers", count: c.answers) + " · " + Format.usd(c.costUsd), labelWidth: 120)
                 }
             }
-            Text("Uma conversa termina depois de dez minutos sem nada dito. O custo de cada resposta é a diferença do total que a sessão do Claude Code informa.")
+            Text(L("history.note"))
                 .zenNote().padding(.top, 16).frame(maxWidth: 640, alignment: .leading)
         }
         .onAppear { model.loadHistory() }
@@ -370,14 +378,14 @@ struct ListeningScreen: View {
     var body: some View {
         let s = model.snapshot?.settings
         VStack(alignment: .leading, spacing: 0) {
-            BlockLabel(text: "Microfone e transcrição")
+            BlockLabel(text: L("listening.micBlock"))
             SettingRows {
-                SettingRow(title: "Cancelamento de eco", hint: model.snapshot?.isEchoCancelled == true
-                           ? "Ligado: o app grava e toca, e o macOS tira a voz dele do microfone."
-                           : "Desligado: grava com o sox e toca com o ffplay; o eco só é reconhecido pelas palavras.") {
+                SettingRow(title: L("listening.echo"), hint: model.snapshot?.isEchoCancelled == true
+                           ? L("listening.echo.on")
+                           : L("listening.echo.off")) {
                     ZenSwitch(isOn: s?.isEchoCancelOn ?? true) { model.set("isEchoCancelOn", $0) }
                 }
-                SettingRow(title: "Microfone", hint: "O medidor segue a sua voz.") {
+                SettingRow(title: L("listening.microphone"), hint: L("listening.microphone.hint")) {
                     MicMeter(level: model.inLevel)
                     ZenSelect(value: model.snapshot.map { Format.device($0.device) } ?? "—",
                               choices: (model.options?.inputs ?? []).map { ($0, Format.device($0)) },
@@ -385,7 +393,7 @@ struct ListeningScreen: View {
                               isBusy: model.applying == "inputDevice") { model.set("inputDevice", $0) }
                 }
                 .zIndex(2)
-                SettingRow(title: "Transcrição", hint: "Whisper no Mac: o maior entende melhor e demora mais.") {
+                SettingRow(title: L("listening.transcription"), hint: L("listening.transcription.hint")) {
                     ZenSelect(value: s?.whisperModel ?? "—",
                               choices: (model.options?.whisperModels ?? []).map { ($0, $0) },
                               selected: s?.whisperModel,
@@ -395,60 +403,60 @@ struct ListeningScreen: View {
             }
             .padding(.bottom, 32)
 
-            BlockLabel(text: "Como chamar")
+            BlockLabel(text: L("listening.callBlock"))
             SettingRows {
-                SettingRow(title: "Entender sem o nome", hint: "Um modelo rápido lê cada frase sem o nome e decide se é para ele. Se for, executa; se não, vai para o rascunho.") {
+                SettingRow(title: L("listening.directed"), hint: L("listening.directed.hint")) {
                     ZenSwitch(isOn: s?.isDirectedOn ?? true) { model.set("isDirectedOn", $0) }
                 }
-                SettingRow(title: "Ouvir tudo", hint: "O que você diz sem o nome vai para um rascunho, e o comando de ação manda executar.") {
+                SettingRow(title: L("listening.draft"), hint: L("listening.draft.hint")) {
                     ZenSwitch(isOn: s?.isDraftOn ?? true) { model.set("isDraftOn", $0) }
                 }
-                SettingRow(title: "Comando de ação", hint: "Separe por vírgula. Qualquer um deles manda o rascunho para o Claude montar e executar. Enter salva.") {
-                    ZenTextField(placeholder: "pode fazer", value: s?.actionPhrases?.joined(separator: ", ") ?? "pode fazer", width: 240) { text in
+                SettingRow(title: L("listening.actionPhrase"), hint: L("listening.actionPhrase.hint")) {
+                    ZenTextField(placeholder: L("default.actionPhrase"), value: s?.actionPhrases?.joined(separator: ", ") ?? L("default.actionPhrase"), width: 240) { text in
                         model.set("actionPhrases", text.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) })
                     }
                 }
-                SettingRow(title: "Rascunho guarda", hint: "Trechos mais antigos que isso saem do rascunho.") {
+                SettingRow(title: L("listening.draftAge"), hint: L("listening.draftAge.hint")) {
                     ZenSelect(value: s.map { "\(Int(($0.draftMaxAgeMs ?? 600_000) / 60_000)) min" } ?? "—",
                               choices: [5, 10, 20, 30, 60].map { (String($0 * 60_000), "\($0) min") },
                               selected: s.map { String(Int($0.draftMaxAgeMs ?? 600_000)) }, width: 160) { model.set("draftMaxAgeMs", Int($0) ?? 600_000) }
                 }
                 .zIndex(5)
-                SettingRow(title: "Nome", hint: "Separe por vírgula. O primeiro é o nome; os outros, como o Whisper escreve errado. Enter salva.") {
-                    ZenTextField(placeholder: "assistant, assistente", value: s?.wakeWords.joined(separator: ", ") ?? "", width: 320) { text in
+                SettingRow(title: L("listening.name"), hint: L("listening.name.hint")) {
+                    ZenTextField(placeholder: L("listening.name.placeholder"), value: s?.wakeWords.joined(separator: ", ") ?? "", width: 320) { text in
                         model.set("wakeWords", text.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) })
                     }
                 }
-                SettingRow(title: "Ouvir agora", hint: model.hotKeyProblem ?? "Faz o mesmo que dizer o nome, de qualquer app.") {
+                SettingRow(title: L("menu.listen"), hint: model.hotKeyProblem ?? L("listening.listenShortcut.hint")) {
                     KeyRecorder(shortcut: shortcuts.listen, shortcuts: shortcuts) { shortcuts.listen = $0 }
                 }
-                SettingRow(title: "Parar", hint: "Vale enquanto ele pensa ou fala; fora disso a tecla fica livre para os outros apps.") {
+                SettingRow(title: L("menu.stop"), hint: L("listening.stopShortcut.hint")) {
                     KeyRecorder(shortcut: shortcuts.stop, allowsKeyAlone: true, shortcuts: shortcuts) { shortcuts.stop = $0 }
                 }
             }
             .padding(.bottom, 32)
 
-            BlockLabel(text: "Tempos da conversa")
+            BlockLabel(text: L("listening.timesBlock"))
             SettingRows {
-                SettingRow(title: "Pausa que encerra a frase", hint: "Num comando longo, as pausas para pensar ficam abaixo deste tempo. Pedaços que chegam logo depois são juntados ao pedido.") {
+                SettingRow(title: L("listening.endSilence"), hint: L("listening.endSilence.hint")) {
                     ZenSelect(value: s.map { Format.seconds($0.endSilenceMs ?? 1_200) } ?? "—",
                               choices: secondsChoices([0.8, 1.2, 1.6, 2, 2.5]),
                               selected: s.map { String(Int($0.endSilenceMs ?? 1_200)) }, width: 160) { model.set("endSilenceMs", Int($0) ?? 1_200) }
                 }
                 .zIndex(4)
-                SettingRow(title: "Depois de responder", hint: "Quanto tempo ele aceita a sua resposta sem o nome.") {
+                SettingRow(title: L("listening.followUp"), hint: L("listening.followUp.hint")) {
                     ZenSelect(value: s.map { Format.seconds($0.followUpMs) } ?? "—",
                               choices: secondsChoices([15, 30, 45, 60, 90, 120]),
                               selected: s.map { String(Int($0.followUpMs)) }, width: 160) { model.set("followUpMs", Int($0) ?? 15_000) }
                 }
                 .zIndex(3)
-                SettingRow(title: "Depois do nome sozinho", hint: "Quanto tempo ele espera a frase.") {
+                SettingRow(title: L("listening.summon"), hint: L("listening.summon.hint")) {
                     ZenSelect(value: s.map { Format.seconds($0.summonMs) } ?? "—",
                               choices: secondsChoices([4, 6, 8, 10, 15, 20]),
                               selected: s.map { String(Int($0.summonMs)) }, width: 160) { model.set("summonMs", Int($0) ?? 8_000) }
                 }
                 .zIndex(2)
-                SettingRow(title: "Margem contra eco", hint: "Fala que começa colada à voz dele é ignorada. Com fone, pode ser menor.") {
+                SettingRow(title: L("listening.echoGuard"), hint: L("listening.echoGuard.hint")) {
                     ZenSelect(value: s.map { Format.seconds($0.echoGuardMs) } ?? "—",
                               choices: secondsChoices([0, 0.5, 0.8, 1.2, 1.5, 2]),
                               selected: s.map { String(Int($0.echoGuardMs)) }, width: 160) { model.set("echoGuardMs", Int($0) ?? 1_200) }
@@ -468,19 +476,19 @@ struct VoiceScreen: View {
         VStack(alignment: .leading, spacing: 0) {
             BlockLabel(text: "Fish Audio")
             SettingRows {
-                SettingRow(title: "Voz", hint: "O id da voz na biblioteca da Fish. Enter salva.") {
-                    ZenTextField(placeholder: "id da voz", value: s?.voiceId ?? "", width: 320) { model.set("voiceId", $0) }
+                SettingRow(title: L("voice.voice"), hint: L("voice.voice.hint")) {
+                    ZenTextField(placeholder: L("voice.voice.placeholder"), value: s?.voiceId ?? "", width: 320) { model.set("voiceId", $0) }
                 }
-                SettingRow(title: "Nome da voz", hint: "Como ela aparece aqui e como o assistente se refere a ela.") {
-                    ZenTextField(placeholder: "nome da voz", value: s?.voiceName ?? "", width: 240) { model.set("voiceName", $0) }
+                SettingRow(title: L("voice.name"), hint: L("voice.name.hint")) {
+                    ZenTextField(placeholder: L("voice.name.placeholder"), value: s?.voiceName ?? "", width: 240) { model.set("voiceName", $0) }
                 }
-                SettingRow(title: "Velocidade") {
-                    ZenSelect(value: s.map { Self.speed($0.voiceSpeed) } ?? "—",
-                              choices: speeds.map { (String($0), Self.speed($0)) },
+                SettingRow(title: L("voice.speed")) {
+                    ZenSelect(value: s.map { Format.speed($0.voiceSpeed) } ?? "—",
+                              choices: speeds.map { (String($0), Format.speed($0)) },
                               selected: s.map { String($0.voiceSpeed) }, width: 160) { model.set("voiceSpeed", Double($0) ?? 1.5) }
                 }
                 .zIndex(2)
-                SettingRow(title: "Modelo", hint: "O s2.1-pro-free vale até 30/11/2026.") {
+                SettingRow(title: L("voice.model"), hint: L("voice.model.hint")) {
                     ZenSelect(value: s?.fishModel ?? "—",
                               choices: (model.options?.fishModels ?? []).map { ($0, $0) },
                               selected: s?.fishModel, width: 200) { model.set("fishModel", $0) }
@@ -489,22 +497,15 @@ struct VoiceScreen: View {
             }
             .padding(.bottom, 32)
 
-            BlockLabel(text: "Sem rede")
+            BlockLabel(text: L("voice.offlineBlock"))
             SettingRows {
-                SettingRow(title: "Voz do Mac", hint: "Entra sozinha quando a Fish não responde.") {
+                SettingRow(title: L("voice.macVoice"), hint: L("voice.macVoice.hint")) {
                     ZenSelect(value: s?.fallbackVoice ?? "—",
                               choices: (model.options?.macVoices ?? []).map { ($0, $0) },
                               selected: s?.fallbackVoice, width: 200) { model.set("fallbackVoice", $0) }
                 }
             }
         }
-    }
-
-    static func speed(_ value: Double) -> String {
-        // 1,0× · 1,25× · 1,5×: no trailing zero after the first decimal.
-        var text = String(format: "%.2f", value)
-        if text.hasSuffix("0") { text.removeLast() }
-        return text.replacingOccurrences(of: ".", with: ",") + "×"
     }
 }
 
@@ -516,42 +517,42 @@ struct BrainScreen: View {
         let session = model.snapshot?.session
         let folders = s?.folders ?? []
         VStack(alignment: .leading, spacing: 0) {
-            BlockLabel(text: "Sessão")
+            BlockLabel(text: L("brain.sessionBlock"))
             SettingRows {
-                SettingRow(title: "Modelo", hint: "Haiku responde mais rápido; Opus pensa mais. A conversa continua na troca.") {
+                SettingRow(title: L("brain.model"), hint: L("brain.model.hint")) {
                     ZenSelect(value: session.map { Format.model($0.model) } ?? "—",
                               choices: (model.options?.models ?? []).map { ($0, Format.model($0)) },
                               selected: session?.model,
                               isBusy: model.applying == "brainModel") { model.set("brainModel", $0) }
                 }
                 .zIndex(2)
-                SettingRow(title: "Claude Code", hint: "As instalações encontradas neste Mac.") {
+                SettingRow(title: "Claude Code", hint: L("brain.claude.hint")) {
                     ZenSelect(value: session.map { "\($0.claudeVersion) · \(Self.home($0.claudePath))" } ?? "—",
                               choices: (model.options?.claudePaths ?? []).map { ($0.path, "\($0.version) · \(Self.home($0.path))") },
                               selected: session?.claudePath, width: 320) { model.set("claudePath", $0) }
                 }
                 .zIndex(1)
-                SettingRow(title: "Quando cai", hint: "Para na quinta falha seguida e avisa.") {
-                    SettingValue(text: "Reabre com espera crescente")
+                SettingRow(title: L("brain.whenDown"), hint: L("brain.whenDown.hint")) {
+                    SettingValue(text: L("brain.whenDown.value"))
                 }
             }
             .padding(.bottom, 32)
 
             HStack(alignment: .firstTextBaseline) {
-                BlockLabel(text: "Pastas que ele lê")
+                BlockLabel(text: L("brain.foldersBlock"))
                 Spacer()
-                Button(action: addFolder) { ButtonLabel(title: "Adicionar pasta", icon: "folder-plus") }
+                Button(action: addFolder) { ButtonLabel(title: L("button.addFolder"), icon: "folder-plus") }
                     .buttonStyle(ZenButtonStyle(kind: .secondary, height: 30))
                     .padding(.bottom, 10)
             }
             SettingRows {
-                SettingRow(title: Self.home(s?.workingFolder ?? ""), hint: "A pasta de trabalho: sempre aberta, com as regras do CLAUDE.md dela.") {
-                    SettingValue(text: "Sempre")
+                SettingRow(title: Self.home(s?.workingFolder ?? ""), hint: L("brain.workingFolder.hint")) {
+                    SettingValue(text: L("brain.always"))
                 }
                 ForEach(folders, id: \.self) { folder in
                     SettingRow(title: Self.home(folder)) {
                         Button { model.set("folders", folders.filter { $0 != folder }) } label: {
-                            ButtonLabel(title: "Remover", icon: "x")
+                            ButtonLabel(title: L("button.remove"), icon: "x")
                         }
                         .buttonStyle(ZenButtonStyle(kind: .secondary, height: 30))
                     }
@@ -559,11 +560,11 @@ struct BrainScreen: View {
             }
             .padding(.bottom, 32)
 
-            BlockLabel(text: "Pergunta antes de")
+            BlockLabel(text: L("brain.confirmBlock"))
             SettingRows {
                 ForEach(model.options?.confirmActions ?? [], id: \.id) { action in
                     let isOn = s?.confirmActions.contains(action.id) ?? true
-                    SettingRow(title: action.label, hint: isOn ? "Só depois do seu \u{201C}pode\u{201D} nesta conversa." : "Faz sem perguntar.") {
+                    SettingRow(title: action.label, hint: isOn ? L("brain.confirm.on") : L("brain.confirm.off")) {
                         ZenSwitch(isOn: isOn) { on in
                             let current = s?.confirmActions ?? []
                             model.set("confirmActions", on ? current + [action.id] : current.filter { $0 != action.id })
@@ -571,7 +572,7 @@ struct BrainScreen: View {
                     }
                 }
             }
-            Text("Ler, pesquisar e editar arquivos locais ele sempre faz sem perguntar. Trocar pastas ou confirmações reabre a sessão, continuando a mesma conversa.")
+            Text(L("brain.note"))
                 .zenNote().padding(.top, 16).frame(maxWidth: 640, alignment: .leading)
         }
     }
@@ -581,7 +582,7 @@ struct BrainScreen: View {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = true
-        panel.prompt = "Adicionar"
+        panel.prompt = L("brain.addFolder.prompt")
         panel.directoryURL = URL(fileURLWithPath: NSHomeDirectory())
         guard panel.runModal() == .OK else { return }
         let current = model.snapshot?.settings.folders ?? []

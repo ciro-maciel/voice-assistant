@@ -37,7 +37,7 @@ final class AudioIO {
     var onNote: (String) -> Void = { _ in }
     /// The engine is (re)started on this microphone.
     var onConfigured: (String) -> Void = { _ in }
-    private(set) var deviceName = "padrão do sistema"
+    private(set) var deviceName = L("device.systemDefault")
 
     func start(device: String?) {
         wantedDevice = device
@@ -115,7 +115,7 @@ final class AudioIO {
             // Don't turn every other app down while the assistant listens.
             input.voiceProcessingOtherAudioDuckingConfiguration = .init(enableAdvancedDucking: false, duckingLevel: .min)
         }
-        deviceName = Self.defaultInputName() ?? "padrão do sistema"
+        deviceName = Self.defaultInputName() ?? L("device.systemDefault")
 
         engine.attach(player)
         engine.connect(player, to: engine.mainMixerNode, format: playFormat)

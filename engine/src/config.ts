@@ -5,8 +5,12 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { chooseLanguage, type Language, macLanguages, whisperCode } from "./language";
 
 export type UserConfig = {
+  /// The conversation's language: "pt-BR" or "en". Default: the Mac's language (pt → Portuguese,
+  /// anything else → English). It sets the voice rules, the spoken phrases and Whisper's default.
+  language?: string;
   /// The name first, then the ways Whisper mishears it. Lowercase.
   wakeWords?: string[];
   /// How the assistant refers to you in its instructions ("Ana"). Empty: "a pessoa".
@@ -61,13 +65,19 @@ const list = (v: unknown): string[] | undefined =>
   Array.isArray(v) && v.every((x) => typeof x === "string") && v.length ? v : undefined;
 const text = (v: unknown): string | undefined => (typeof v === "string" && v.trim() ? v.trim() : undefined);
 
+// The conversation follows the config (else the Mac); the words on screen follow the Mac.
+const MAC_LANGUAGES = macLanguages();
+export const LANGUAGE: Language = chooseLanguage(text(CONFIG.language), MAC_LANGUAGES);
+export const UI_LANGUAGE: Language = chooseLanguage(undefined, MAC_LANGUAGES);
+
 export const WORKING_DIR = expand(text(CONFIG.workingDir) ?? "~");
 export const FOLDERS = (list(CONFIG.folders) ?? []).map(expand);
 export const USER_NAME = text(CONFIG.userName);
 export const INSTRUCTIONS = text(CONFIG.instructions) ?? "";
 
 // The first entry is the name; the rest are what Whisper writes when it mishears it.
-export const WAKE_WORDS = (list(CONFIG.wakeWords) ?? ["assistant", "assistente"]).map((w) => w.toLowerCase());
+// "assistant" works in both languages; Whisper writes it "assistente" when it hears Portuguese.
+export const WAKE_WORDS = (list(CONFIG.wakeWords) ?? (LANGUAGE === "pt-BR" ? ["assistant", "assistente"] : ["assistant"])).map((w) => w.toLowerCase());
 
 // HUD and its local API (POST /listen, /say, /stop, /mute).
 export const HUD_PORT = 4780;
@@ -77,10 +87,11 @@ export const WHISPER_PORT = 4781;
 export const DATA_DIR = expand(text(CONFIG.dataDir) ?? "~/Library/Application Support/voice-assistant");
 export const WHISPER_MODELS_DIR = expand(text(CONFIG.whisperModelsDir) ?? join(DATA_DIR, "models"));
 export const WHISPER_MODEL = text(CONFIG.whisperModel) ?? "large-v3-turbo";
-export const WHISPER_LANGUAGE = text(CONFIG.whisperLanguage) ?? "pt";
+export const WHISPER_LANGUAGE = text(CONFIG.whisperLanguage) ?? whisperCode(LANGUAGE);
 // A natural sentence, not a word list: Whisper imitates the prompt's style, and a list of
 // names made it answer in comma-separated fragments.
-export const WHISPER_PROMPT_TEMPLATE = text(CONFIG.whisperPrompt) ?? "{name}, olha o deploy do site e o commit no repositório, por favor.";
+export const WHISPER_PROMPT_TEMPLATE = text(CONFIG.whisperPrompt)
+  ?? (LANGUAGE === "pt-BR" ? "{name}, olha o deploy do site e o commit no repositório, por favor." : "{name}, check the site's deploy and the last commit in the repository, please.");
 export const SAMPLE_RATE = 16000;
 // Which microphone, in order of preference; the first one connected wins (a laptop's own mic
 // goes silent with the lid closed, so an external one usually comes first). ASSISTANT_INPUT
@@ -104,7 +115,7 @@ export const FISH_VOICE_ID = process.env.FISH_VOICE_ID ?? text(CONFIG.fishVoiceI
 export const FISH_MODEL = text(CONFIG.fishModel) ?? "s2.1-pro";
 export const VOICE_SPEED = typeof CONFIG.voiceSpeed === "number" ? CONFIG.voiceSpeed : 1.0;
 export const VOICE_NAME = text(CONFIG.voiceName) ?? "";
-export const FALLBACK_VOICE = text(CONFIG.fallbackVoice) ?? "Luciana";
+export const FALLBACK_VOICE = text(CONFIG.fallbackVoice) ?? (LANGUAGE === "pt-BR" ? "Luciana" : "Samantha");
 
 /// FISH_API_KEY from the environment, else from the dotenv file the config names.
 export function fishApiKey(): string | undefined {

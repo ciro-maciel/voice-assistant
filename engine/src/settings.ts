@@ -5,22 +5,20 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { dirname, join } from "node:path";
 import {
   BRAIN_MODEL, CLAUDE_CANDIDATES, ECHO_GUARD_MS, FALLBACK_VOICE, FISH_MODEL, FISH_VOICE_ID, FOLDERS, FOLLOW_UP_MS,
-  INSTRUCTIONS, SETTINGS_FILE, SUMMON_MS, USER_NAME, VOICE_NAME, VOICE_SPEED, WAKE_WORDS, WHISPER_MODEL,
-  WHISPER_MODELS_DIR, WHISPER_PROMPT_TEMPLATE,
+  INSTRUCTIONS, LANGUAGE, SETTINGS_FILE, SUMMON_MS, UI_LANGUAGE, USER_NAME, VOICE_NAME, VOICE_SPEED, WAKE_WORDS,
+  WHISPER_MODEL, WHISPER_MODELS_DIR, WHISPER_PROMPT_TEMPLATE,
 } from "./config";
+import type { Language } from "./language";
+import { type Key, t } from "./strings";
 
 export const BRAIN_MODELS = ["claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5"];
 export const FISH_MODELS = ["s2.1-pro-free", "s2.1-pro"];
 
 // The actions that can require your spoken "pode" first; all of them by default.
-export const CONFIRM_ACTIONS = [
-  { id: "push", label: "Push" },
-  { id: "deploy", label: "Deploy" },
-  { id: "publish", label: "Publicar" },
-  { id: "message", label: "Mandar mensagem a alguém" },
-  { id: "delete", label: "Apagar" },
-  { id: "pay", label: "Pagar" },
-];
+export const CONFIRM_ACTION_IDS = ["push", "deploy", "publish", "message", "delete", "pay"];
+/// The actions with their labels in one language (the app's screen uses the Mac's).
+export const confirmActions = (lang: Language = UI_LANGUAGE) =>
+  CONFIRM_ACTION_IDS.map((id) => ({ id, label: t(lang, `confirm.${id}` as Key) }));
 
 export type Settings = {
   inputDevice?: string;
@@ -59,7 +57,7 @@ export const DEFAULTS: Settings = {
   isDraftOn: true,
   isEchoCancelOn: true,
   isDirectedOn: true,
-  actionPhrases: ["pode fazer"],
+  actionPhrases: [LANGUAGE === "pt-BR" ? "pode fazer" : "go ahead"],
   draftMaxAgeMs: 10 * 60_000,
   voiceId: FISH_VOICE_ID,
   voiceName: VOICE_NAME,
@@ -68,7 +66,7 @@ export const DEFAULTS: Settings = {
   fallbackVoice: FALLBACK_VOICE,
   brainModel: BRAIN_MODEL,
   folders: FOLDERS,
-  confirmActions: CONFIRM_ACTIONS.map((a) => a.id),
+  confirmActions: CONFIRM_ACTION_IDS,
 };
 
 /// The saved choices over the defaults. Unknown keys are ignored; a broken file means defaults.
@@ -113,7 +111,7 @@ export function pick(patch: Record<string, unknown>): Partial<Settings> {
   if (isText(patch.brainModel) && BRAIN_MODELS.includes(patch.brainModel)) out.brainModel = patch.brainModel;
   if (isText(patch.claudePath) && CLAUDE_CANDIDATES.includes(patch.claudePath)) out.claudePath = patch.claudePath;
   if (isList(patch.folders)) out.folders = [...new Set(patch.folders.filter((f) => f.startsWith("/")))];
-  if (isList(patch.confirmActions)) out.confirmActions = patch.confirmActions.filter((a) => CONFIRM_ACTIONS.some((c) => c.id === a));
+  if (isList(patch.confirmActions)) out.confirmActions = patch.confirmActions.filter((a) => CONFIRM_ACTION_IDS.includes(a));
   return out;
 }
 
@@ -145,29 +143,33 @@ export function whisperModelPath(name: string, dir = WHISPER_MODELS_DIR): string
   return join(dir, `ggml-${name}.bin`);
 }
 
-// The Mac's own Portuguese voices (`say -v ?`), for when Fish does not answer.
-export function macVoices(): string[] {
+// The Mac's own voices in the conversation's language (`say -v ?`), for when Fish does not answer.
+export function macVoices(lang: Language = LANGUAGE): string[] {
   const out = Bun.spawnSync(["say", "-v", "?"]).stdout.toString();
   // "Eddy (Português (Brasil)) pt_BR    # Olá…" or "Luciana             pt_BR    # Olá…"
+  const prefix = lang === "pt-BR" ? "pt" : "en";
+  const home = lang === "pt-BR" ? "pt_BR" : "en_US";
   const voices = out.split("\n")
-    .map((line) => line.match(/^(.*?)\s+(pt_[A-Z]{2})\s/))
+    .map((line) => line.match(new RegExp(`^(.*?)\\s+(${prefix}_[A-Z]{2})\\s`)))
     .filter((m): m is RegExpMatchArray => !!m)
     .map((m) => ({ name: m[1].replace(/\s*\(.*\)\s*$/, "").trim(), region: m[2] }));
-  // Brazil first, each name once.
-  voices.sort((a, b) => Number(b.region === "pt_BR") - Number(a.region === "pt_BR"));
+  // Brazil (or the US) first, each name once.
+  voices.sort((a, b) => Number(b.region === home) - Number(a.region === home));
   return Array.from(new Set(voices.map((v) => v.name)));
 }
 
-// The voice rules appended to Claude Code's system prompt, from the current settings.
-export function voiceRules(s: Settings, user = USER_NAME, instructions = INSTRUCTIONS): string {
+// The voice rules appended to Claude Code's system prompt, from the current settings, in the
+// conversation's language.
+export function voiceRules(s: Settings, user = USER_NAME, instructions = INSTRUCTIONS, lang: Language = LANGUAGE): string {
   const name = s.wakeWords[0] ? s.wakeWords[0][0].toUpperCase() + s.wakeWords[0].slice(1) : "Assistant";
+  const actions = confirmActions(lang).filter((a) => s.confirmActions.includes(a.id)).map((a) => a.label.toLowerCase());
+  const voice = s.voiceName.split(" ")[0];
+  if (lang === "en") return voiceRulesEnglish(name, user, actions, voice, instructions);
   const who = user ?? "A pessoa";
-  const actions = CONFIRM_ACTIONS.filter((a) => s.confirmActions.includes(a.id)).map((a) => a.label.toLowerCase());
   const confirm = actions.length
     ? `- Estas ações só depois de ${user ?? "ela"} autorizar aquela ação específica nesta conversa: ${actions.join(", ")}.
   Pergunte de forma direta: "Posso fazer o push?". O resto você faz sem perguntar.`
     : "- Nenhuma ação precisa de autorização falada; faça o que for pedido.";
-  const voice = s.voiceName.split(" ")[0];
   return `
 Seu nome é ${name}. Você está em modo de voz. ${who} fala com você pelo microfone e ouve, frase por
 frase, tudo o que você escreve, ${voice ? `na voz de ${voice}` : "na voz do Mac"}. Ninguém está olhando a tela.
@@ -187,6 +189,35 @@ ${confirm}
   resumo da conversa vai para o diário que você lê ao começar, e você lembra na próxima conversa.
 - O diário das conversas recentes vem no fim destas instruções. Quando perguntarem o que ficou
   pendente ou o que foi feito, responda por ele.
+${instructions}
+`.trim();
+}
+
+function voiceRulesEnglish(name: string, user: string | undefined, actions: string[], voice: string, instructions: string): string {
+  const who = user ?? "The person";
+  const confirm = actions.length
+    ? `- These actions only after ${user ?? "they"} authorize that specific action in this conversation: ${actions.join(", ")}.
+  Ask directly: "Shall I push?". Everything else you do without asking.`
+    : "- No action needs spoken permission; do what is asked.";
+  return `
+Your name is ${name}. You are in voice mode. ${who} talks to you through the microphone and hears,
+sentence by sentence, everything you write, ${voice ? `in ${voice}'s voice` : "in the Mac's voice"}. Nobody is looking at the screen.
+
+- Answer in short, spoken English: one to three sentences, unless asked for detail.
+- No markdown, lists, tables, code, file paths, links, emoji or spelled-out acronyms.
+  Write the way people talk.
+- Before using any tool, say in one short sentence what you are about to do ("I'll check the
+  project's CI."). The person hears it while you work, and silence sounds like a freeze.
+- When you finish a piece of work, say the result in one or two sentences. Details only if asked.
+- The message comes from speech recognition and may have wrong words. Go by the meaning;
+  ask only if it is truly ambiguous.
+${confirm}
+- In this session everything is already spoken: do not use the voice marker in an HTML comment.
+- Do not schedule reminders or tasks inside the session (CronCreate, loop, ScheduleWakeup): they
+  die when the session closes. When asked to remember something, say it is noted: the
+  conversation's summary goes to the journal you read when you start, and you remember it next time.
+- The journal of recent conversations comes at the end of these instructions. When asked what is
+  pending or what was done, answer from it.
 ${instructions}
 `.trim();
 }

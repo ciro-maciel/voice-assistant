@@ -35,7 +35,7 @@ describe("Draft", () => {
 
 test("the request lists every piece with its time, and the words said with the command", () => {
   const at = new Date(2026, 9, 12, 9, 15, 3).getTime();
-  const request = buildRequest([{ at, text: "no editor, quando clicar fora" }], "fecha o retângulo");
+  const request = buildRequest([{ at, text: "no editor, quando clicar fora" }], "fecha o retângulo", "pt-BR");
   expect(request).toContain("[09:15:03] no editor, quando clicar fora");
   expect(request).toContain("[agora] fecha o retângulo");
   expect(request).toContain("ignore o que não for para você e execute");

@@ -31,11 +31,11 @@ and [Claude Code](https://docs.anthropic.com/en/docs/claude-code), signed in. On
 | "Assistant" alone | plays a sound and waits 8 seconds for the request |
 | a reply after it finishes speaking | accepted without the name for 60 seconds |
 | "Assistant" while it speaks or works | stops at once and listens |
-| anything else | goes to a draft; say "pode fazer" to run it, or the name |
+| anything else | goes to a draft; say "go ahead" ("pode fazer" in Portuguese) to run it, or the name |
 
 Before using a tool it says what it is about to do. Reading, searching and editing local files it does without asking. Push, deploy, publish, messaging someone, deleting and paying wait for your spoken yes in that conversation; the list is yours to change in the app.
 
-The prompts, the voice rules and the interface are in Portuguese today.
+English and Brazilian Portuguese, following the Mac's language: the interface, the spoken phrases, the voice rules and the prompts sent to Claude. The `language` key in the config sets the conversation's language apart from the Mac's.
 
 ## How it works
 
@@ -67,20 +67,21 @@ Everything personal is in one file outside the repository, `~/.config/voice-assi
 
 | Key | What it does | Default |
 | --- | --- | --- |
-| `wakeWords` | The name first, then how Whisper mishears it | `["assistant", "assistente"]` |
-| `userName` | How the instructions refer to you | "a pessoa" |
+| `language` | The conversation's language: `"en"` or `"pt-BR"` (voice rules, spoken phrases, Whisper's default) | the Mac's language (pt → Portuguese, else English) |
+| `wakeWords` | The name first, then how Whisper mishears it | `["assistant"]`; in Portuguese `["assistant", "assistente"]` |
+| `userName` | How the instructions refer to you | "the person" |
 | `workingDir` | Where the Claude Code session runs (its `CLAUDE.md`) | your home folder |
 | `folders` | Extra folders it may read and edit (`--add-dir`) | none |
 | `instructions` | Lines appended to the voice rules | none |
 | `inputPreference` | Microphones by name, first connected wins | system default |
-| `whisperModelsDir`, `whisperModel`, `whisperLanguage`, `whisperPrompt` | Local Whisper | `…/voice-assistant/models`, `large-v3-turbo`, `pt` |
+| `whisperModelsDir`, `whisperModel`, `whisperLanguage`, `whisperPrompt` | Local Whisper | `…/voice-assistant/models`, `large-v3-turbo`, the conversation's language (`en` or `pt`) |
 | `fishVoiceId`, `voiceName`, `voiceSpeed`, `fishModel` | Fish Audio voice | none (Mac voice), 1.0, `s2.1-pro` |
 | `fishApiKeyFile` | A dotenv file with `FISH_API_KEY=` for when the app has no shell environment | none |
-| `fallbackVoice` | The Mac voice (`say -v ?`) | Luciana |
+| `fallbackVoice` | The Mac voice (`say -v ?`) | Samantha; in Portuguese, Luciana |
 | `brainModel` | Claude model of the conversation | `claude-haiku-5-5` |
 | `dataDir` | History, journal, session and the app's settings | `~/Library/Application Support/voice-assistant` |
 
-Environment variables win over the file: `FISH_API_KEY`, `FISH_VOICE_ID`, `ASSISTANT_MODEL`, `ASSISTANT_INPUT` (a microphone by name) and `ASSISTANT_CLAUDE` (the `claude` binary). The app's Ajustes screens change microphone, Whisper model, voice, model, folders and confirmations live, and save them in `dataDir/settings.json`.
+Environment variables win over the file: `FISH_API_KEY`, `FISH_VOICE_ID`, `ASSISTANT_MODEL`, `ASSISTANT_INPUT` (a microphone by name) and `ASSISTANT_CLAUDE` (the `claude` binary). The app's Settings screens change microphone, Whisper model, voice, model, folders and confirmations live, and save them in `dataDir/settings.json`.
 
 ## The spoken summary hook (optional)
 
@@ -115,7 +116,7 @@ bun test                         # wake word, echo, conversation windows, senten
 ## Limits
 
 - Apple Silicon and macOS 14 or newer only.
-- Portuguese prompts and interface.
+- English and Brazilian Portuguese only, following the Mac's language.
 - One model talks and works: during a long task it says what it will do and goes quiet until it ends.
 - It does not start at login.
 

@@ -15,6 +15,7 @@ House rules:
 
 - Bun and TypeScript for the engine, Swift and SwiftUI for the app, built by `swiftc`. No Xcode project, no npm, no new dependencies without a good reason.
 - Audio stays on the Mac. No recording, transcript or history leaves it; the only things sent out are the requests to Claude Code and, when configured, the text of each spoken sentence to Fish Audio.
+- Every user-facing string exists in English and Brazilian Portuguese (`Resources/en.lproj` / `Resources/pt-BR.lproj`, `engine/src/strings.ts`, the prompts in both languages); a change that adds text adds both.
 - Nothing personal in the code: names, voices, folders and microphones come from the config file (`config.example.json`).
 - Actions that change the outside world (push, deploy, publish, messages, deleting, paying) keep needing a spoken yes unless the person turns that off.
 

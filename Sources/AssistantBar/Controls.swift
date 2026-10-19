@@ -57,14 +57,14 @@ struct KeyRecorder: View {
             Button(action: toggle) {
                 Group {
                     if recording {
-                        Text("Digite o atalho").font(Zen.font(11, .bold)).foregroundStyle(Zen.gray9)
+                        Text(L("recorder.type")).font(Zen.font(11, .bold)).foregroundStyle(Zen.gray9)
                             .padding(.horizontal, 10).frame(height: 24)
                             .background(Zen.gray0)
                             .overlay(Rectangle().strokeBorder(Zen.gray9, lineWidth: 1.5))
                     } else if let shortcut {
                         Caps(shortcut: shortcut)
                     } else {
-                        Text("Sem atalho").font(Zen.font(11, .bold)).foregroundStyle(Zen.gray4)
+                        Text(L("recorder.none")).font(Zen.font(11, .bold)).foregroundStyle(Zen.gray4)
                             .padding(.horizontal, 10).frame(height: 24)
                             .overlay(Rectangle().strokeBorder(Zen.gray3, style: StrokeStyle(lineWidth: 1, dash: [3, 2])))
                     }
@@ -75,15 +75,14 @@ struct KeyRecorder: View {
             }
             .buttonStyle(.plain)
             .onHover { hover = $0 }
-            .help(recording ? "Aperte a combinação. ⌫ tira o atalho." : "Clique para trocar o atalho")
+            .help(recording ? L("recorder.help.recording") : L("recorder.help.idle"))
             if let message {
                 Text(message).font(Zen.font(11, .medium)).foregroundStyle(Zen.red7)
                     .multilineTextAlignment(.trailing).fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: 260, alignment: .trailing)
             } else if recording {
                 // A combination another app holds as a global shortcut never reaches this window.
-                Text(allowsKeyAlone ? "⌫ tira o atalho\nSe nada aparecer, outro app já usa a combinação"
-                                    : "⌫ tira o atalho · esc cancela\nSe nada aparecer, outro app já usa a combinação")
+                Text(allowsKeyAlone ? L("recorder.hint.keyAlone") : L("recorder.hint"))
                     .font(Zen.font(11, .medium)).foregroundStyle(Zen.gray5)
                     .multilineTextAlignment(.trailing).fixedSize(horizontal: false, vertical: true)
             }
@@ -121,13 +120,13 @@ struct KeyRecorder: View {
         }
         let s = Shortcut(keyCode: UInt32(event.keyCode), modifiers: mods)
         guard allowsKeyAlone || s.isUsable else {
-            message = "Use ⌃, ⌥ ou ⌘ junto com a tecla"
+            message = L("recorder.needsModifier")
             return
         }
         stopRecording()
         let other = allowsKeyAlone ? shortcuts.listen : shortcuts.stop
         if other == s {
-            message = "\(s.text) já é o atalho de “\(allowsKeyAlone ? "Ouvir agora" : "Parar")”"
+            message = L("recorder.duplicate", s.text, allowsKeyAlone ? L("menu.listen") : L("menu.stop"))
             return
         }
         onChange(s)
@@ -209,6 +208,6 @@ struct ZenSwitch: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(.isToggle)
-        .accessibilityValue(isOn ? "ligado" : "desligado")
+        .accessibilityValue(isOn ? L("switch.on") : L("switch.off"))
     }
 }

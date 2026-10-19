@@ -12,8 +12,15 @@
     <string>__VERSION__</string>
     <key>CFBundleShortVersionString</key>
     <string>__VERSION__</string>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>en</string>
+        <string>pt-BR</string>
+    </array>
     <key>NSMicrophoneUsageDescription</key>
-    <string>O Assistant ouve você pelo microfone para conversar por voz. O áudio fica neste Mac.</string>
+    <string>Assistant listens to you through the microphone to talk by voice. The audio stays on this Mac.</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleIconFile</key>

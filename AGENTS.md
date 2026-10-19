@@ -8,6 +8,7 @@ Assistant is two parts: the voice loop (`engine/`, TypeScript on Bun) and a macO
 | --- | --- |
 | `engine/src/main.ts` | Wires ear, brain, mouth, memory and the HUD |
 | `engine/src/config.ts` | Every knob; personal values come from `~/.config/voice-assistant/config.json` |
+| `engine/src/language.ts`, `strings.ts` | Which language (config, else the Mac) and every short text in both |
 | `engine/src/ear.ts` | Microphone (sox, or the app's echo-cancelled stream), utterance cutting, local whisper-server |
 | `engine/src/conversation.ts`, `wake.ts`, `draft.ts`, `directed.ts` | What to do with each utterance |
 | `engine/src/brain.ts` | The persistent `claude -p` session (stream-json) |
@@ -32,4 +33,4 @@ cd .. && scripts/build.sh
 - Nothing personal in the repository: the config file holds it, and `config.example.json` documents it with generic values.
 - The engine's local server listens on 127.0.0.1 only.
 - The bundle identifier (`click.ciromaciel.voice-assistant`) never changes: macOS ties the Microphone grant to it.
-- Interface text and prompts are in Portuguese; code, comments and file names are in English.
+- Every user-facing string exists in English and Brazilian Portuguese (`Resources/en.lproj` / `Resources/pt-BR.lproj` for the app through `L(...)`, `engine/src/strings.ts` and the prompts beside their code for the engine, the `TEXT` table in `hud.html`); a change that adds text adds both. The app follows the Mac's language; the conversation follows the config's `language`, else the Mac. Code, comments and file names are in English.

@@ -50,7 +50,7 @@ describe("journal", () => {
       { role: "user", text: "status?", at: 1 },
       { role: "tool", text: "Bash: gh run list", at: 2 },
       { role: "assistant", text: "Passou.", at: 3 },
-    ], "Ana")).toBe("Ana: status?\n(ferramenta: Bash: gh run list)\nAssistente: Passou.");
+    ], "Ana", "pt-BR")).toBe("Ana: status?\n(ferramenta: Bash: gh run list)\nAssistente: Passou.");
   });
 
   test("dayKey is the local date", () => {

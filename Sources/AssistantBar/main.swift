@@ -18,7 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let shortcuts = Shortcuts()
     private var listenItem: NSMenuItem!
     private var stopItem: NSMenuItem!
-    /// The strip shows the assistant thinking or speaking: "Parar" holds its key only then.
+    /// The strip shows the assistant thinking or speaking: Stop holds its key only then.
     private var isStopNeeded = false
     private var statusItem: NSStatusItem!
     private var stateItem: NSMenuItem!
@@ -34,6 +34,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // The system is light for now; the app forces it.
         NSApp.appearance = NSAppearance(named: .aqua)
         Zen.registerFonts()
+
+        // Sample data, no loop and no microphone: for screenshots (Preview.swift).
+        if let pane = Preview.pane {
+            Preview.fill(model)
+            openWindow(pane)
+            if let path = Preview.capturePath { Preview.capture(window, to: path) }
+            return
+        }
 
         setUpMenuBar()
         strip = StripController(model: model) { [weak self] in self?.openWindow(.now) }
@@ -62,6 +70,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// Quitting never waits on the main thread: the loop stops in the background (at most two
     /// seconds) and only then the app answers "terminate".
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        if Preview.pane != nil { return .terminateNow }
         backend.note("saindo: pedido de saída recebido")
         audioLink.restoreDefaultInput()
         backend.stop(within: 2) {
@@ -91,16 +100,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         stateItem.isEnabled = false
         menu.addItem(stateItem)
         menu.addItem(.separator())
-        listenItem = item("Ouvir agora", #selector(listen))
+        listenItem = item(L("menu.listen"), #selector(listen))
         menu.addItem(listenItem)
-        stopItem = item("Parar", #selector(stop))
+        stopItem = item(L("menu.stop"), #selector(stop))
         menu.addItem(stopItem)
-        muteItem = item("Silenciar o microfone", #selector(toggleMute))
+        muteItem = item(L("menu.mute"), #selector(toggleMute))
         menu.addItem(muteItem)
         menu.addItem(.separator())
-        menu.addItem(item("Abrir o Assistant…", #selector(openFromMenu), key: "o"))
+        menu.addItem(item(L("menu.open"), #selector(openFromMenu), key: "o"))
         menu.addItem(.separator())
-        menu.addItem(item("Sair", #selector(quit), key: "q"))
+        menu.addItem(item(L("menu.quit"), #selector(quit), key: "q"))
         statusItem.menu = menu
 
         watch = model.$snapshot.receive(on: RunLoop.main).sink { [weak self] _ in self?.updateMenu() }
@@ -112,7 +121,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func updateMenu() {
         let device = model.snapshot.map { " · " + $0.device } ?? ""
         stateItem.title = model.state.word + device
-        muteItem.title = model.snapshot?.isMuted == true ? "Reativar o microfone" : "Silenciar o microfone"
+        muteItem.title = model.snapshot?.isMuted == true ? L("menu.unmute") : L("menu.mute")
     }
 
     private func item(_ title: String, _ action: Selector, key: String = "") -> NSMenuItem {
@@ -129,7 +138,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         model.hotKeyProblem = nil
         if !shortcuts.isPaused, let s = shortcuts.listen {
             if !hotKeys.register(id: HotKey.listen.rawValue, keyCode: Int(s.keyCode), modifiers: Int(s.carbonModifiers), action: { [weak self] in self?.model.listen() }) {
-                model.hotKeyProblem = "\(s.text) já está em uso por outro app"
+                model.hotKeyProblem = L("shortcut.taken", s.text)
             }
         }
         if !shortcuts.isPaused, isStopNeeded, let s = shortcuts.stop {

@@ -29,7 +29,9 @@ swiftc -O ${SDK_ARGS[@]+"${SDK_ARGS[@]}"} -target arm64-apple-macosx14.0 -swift-
     "$ROOT"/Sources/AssistantBar/*.swift -o "$APP/Contents/MacOS/AssistantBar"
 # Every build carries VERSION; the window's footer reads it back.
 sed "s/__VERSION__/$VERSION/g" "$ROOT/Resources/Info.plist" > "$APP/Contents/Info.plist"
-cp -R "$ROOT/Resources/AppIcon.icns" "$ROOT/Resources/Fonts" "$ROOT/Resources/Icons" "$RESOURCES/"
+# en.lproj and pt-BR.lproj: the interface in English and Brazilian Portuguese (the Mac's language picks).
+cp -R "$ROOT/Resources/AppIcon.icns" "$ROOT/Resources/Fonts" "$ROOT/Resources/Icons" \
+    "$ROOT/Resources/en.lproj" "$ROOT/Resources/pt-BR.lproj" "$RESOURCES/"
 
 # The Bun runtime, copied out of its symlink, so the bundle does not depend on ~/.bun.
 cp "$(readlink -f "$BUN")" "$RESOURCES/bun"

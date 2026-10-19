@@ -1,7 +1,8 @@
 // The ear: captures the microphone with sox, cuts it into utterances by energy, and
 // transcribes each one with a local whisper-server that keeps the model loaded.
 import { EventEmitter } from "node:events";
-import { INPUT_PREFERENCE, SAMPLE_RATE, tool, WHISPER_LANGUAGE, WHISPER_MODEL, WHISPER_PORT } from "./config";
+import { INPUT_PREFERENCE, SAMPLE_RATE, tool, UI_LANGUAGE, WHISPER_LANGUAGE, WHISPER_MODEL, WHISPER_PORT } from "./config";
+import { t } from "./strings";
 import { DEFAULTS, whisperModelPath, whisperPrompt } from "./settings";
 import { isNoise } from "./wake";
 import { audioBridge } from "./audio-bridge";
@@ -33,7 +34,7 @@ export class Ear extends EventEmitter {
   private lastLevelAt = 0;
   private peakSince = { at: Date.now(), rms: 0 };
   isDead = false;
-  device = "padrão do sistema";
+  device = t(UI_LANGUAGE, "device.systemDefault");
   whisperModel = WHISPER_MODEL;
   whisperPrompt = whisperPrompt(DEFAULTS);
   /// Live: the app's Escuta screen sets how long a pause closes a sentence.
@@ -130,7 +131,7 @@ export class Ear extends EventEmitter {
   private startRecorder(wanted?: string) {
     const generation = ++this.recorderGeneration;
     const device = pickInput(wanted);
-    this.device = device ?? "padrão do sistema";
+    this.device = device ?? t(UI_LANGUAGE, "device.systemDefault");
     this.resetCapture();
     // sox with an explicit coreaudio device; rec when the system default is the best we have.
     const input = device ? [tool("sox"), "-q", "-t", "coreaudio", device] : [tool("rec"), "-q"];

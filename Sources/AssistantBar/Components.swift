@@ -146,7 +146,7 @@ struct ZenSelect: View {
     var body: some View {
         Button { if !isBusy && !choices.isEmpty { open.toggle() } } label: {
             HStack(spacing: 10) {
-                Text(isBusy ? "Aplicando…" : value).font(Zen.font(13, .bold)).foregroundStyle(isBusy ? Zen.gray5 : Zen.gray9).lineLimit(1)
+                Text(isBusy ? L("select.applying") : value).font(Zen.font(13, .bold)).foregroundStyle(isBusy ? Zen.gray5 : Zen.gray9).lineLimit(1)
                 Spacer(minLength: 0)
                 Icon(name: "chevron-down", size: 14, color: Zen.gray6).rotationEffect(.degrees(open ? 180 : 0))
             }

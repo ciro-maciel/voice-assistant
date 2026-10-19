@@ -26,7 +26,7 @@ final class Backend {
         let bun = resources.appendingPathComponent("bun")
         let dir = resources.appendingPathComponent("engine")
         guard FileManager.default.isExecutableFile(atPath: bun.path) else {
-            problem = "Pacote incompleto: falta o Bun"
+            problem = "incomplete bundle: bun is missing"
             return
         }
 
@@ -49,6 +49,10 @@ final class Backend {
         environment["PATH"] = toolPath
         // The app records and plays (AudioIO, echo cancelled): the loop must not open sox.
         environment["ASSISTANT_APP_AUDIO"] = "1"
+        // The Mac's languages as this app sees them (so -AppleLanguages reaches the engine too):
+        // the engine's statuses follow them, and so does the conversation unless the config's
+        // `language` says otherwise.
+        environment["ASSISTANT_LANGUAGES"] = ([Localization.language] + Locale.preferredLanguages).joined(separator: ",")
         p.environment = environment
         p.standardOutput = log
         p.standardError = log

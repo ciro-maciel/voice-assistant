@@ -10,14 +10,14 @@ enum LoopState: String {
 
     var word: String {
         switch self {
-        case .waiting: return "Disponível"
-        case .listening: return "Pode falar"
-        case .drafting: return "Anotando"
-        case .hearing: return "Escutando"
-        case .thinking: return "Pensando"
-        case .speaking: return "Falando"
-        case .muted: return "Microfone desligado"
-        case .offline: return "Desligado"
+        case .waiting: return L("state.waiting")
+        case .listening: return L("state.listening")
+        case .drafting: return L("state.drafting")
+        case .hearing: return L("state.hearing")
+        case .thinking: return L("state.thinking")
+        case .speaking: return L("state.speaking")
+        case .muted: return L("state.muted")
+        case .offline: return L("state.offline")
         }
     }
 }
@@ -250,28 +250,32 @@ final class AssistantModel: ObservableObject {
     func clearDraft() { post("draft/clear") }
 }
 
-// MARK: - Formatting (pt-BR)
+// MARK: - Formatting (the Mac's locale)
 
 enum Format {
-    private static let money: NumberFormatter = {
+    private static func number(_ value: Double, digits: ClosedRange<Int>) -> String {
         let f = NumberFormatter()
-        f.locale = Locale(identifier: "pt_BR")
+        f.locale = Locale.current
         f.numberStyle = .decimal
-        f.minimumFractionDigits = 2
-        f.maximumFractionDigits = 2
-        return f
-    }()
+        f.minimumFractionDigits = digits.lowerBound
+        f.maximumFractionDigits = digits.upperBound
+        return f.string(from: NSNumber(value: value)) ?? String(value)
+    }
 
-    /// Below one cent, three decimals: "US$ 0,004" says more than "US$ 0,00".
+    /// Below one cent, three decimals: "US$ 0.004" says more than "US$ 0.00".
     static func usd(_ value: Double) -> String {
-        money.maximumFractionDigits = value > 0 && value < 0.01 ? 3 : 2
-        return "US$ " + (money.string(from: NSNumber(value: value)) ?? "0,00")
+        "US$ " + number(value, digits: 2...(value > 0 && value < 0.01 ? 3 : 2))
     }
 
     static func seconds(_ ms: Double) -> String {
         let s = ms / 1000
         if s == s.rounded() || s >= 10 { return "\(Int(s.rounded())) s" }
-        return String(format: "%.1f s", s).replacingOccurrences(of: ".", with: ",")
+        return number(s, digits: 1...1) + " s"
+    }
+
+    /// "1×", "1.25×" (or "1,25×"): no trailing zero.
+    static func speed(_ value: Double) -> String {
+        number(value, digits: 0...2) + "×"
     }
 
     static func clock(_ ms: Double) -> String {
@@ -283,19 +287,19 @@ enum Format {
     static func day(_ ms: Double) -> String {
         let date = Date(timeIntervalSince1970: ms / 1000)
         let cal = Calendar.current
-        if cal.isDateInToday(date) { return "Hoje, \(clock(ms))" }
-        if cal.isDateInYesterday(date) { return "Ontem, \(clock(ms))" }
+        if cal.isDateInToday(date) { return L("day.today", clock(ms)) }
+        if cal.isDateInYesterday(date) { return L("day.yesterday", clock(ms)) }
         let f = DateFormatter()
-        f.locale = Locale(identifier: "pt_BR")
-        f.dateFormat = "dd/MM, HH:mm"
+        f.locale = Locale.current
+        f.setLocalizedDateFormatFromTemplate("ddMMHHmm")
         return f.string(from: date)
     }
 
     static func since(_ ms: Double, now: Date) -> String {
         let minutes = Int(now.timeIntervalSince1970 - ms / 1000) / 60
-        if minutes < 1 { return "aberta agora" }
-        if minutes < 60 { return "aberta há \(minutes) min" }
-        return "aberta há \(minutes / 60) h \(minutes % 60) min"
+        if minutes < 1 { return L("since.now") }
+        if minutes < 60 { return L("since.minutes", minutes) }
+        return L("since.hours", minutes / 60, minutes % 60)
     }
 
     /// "claude-haiku-5-5" → "Haiku 5.5".
@@ -305,10 +309,14 @@ enum Format {
         return name.capitalized + " " + parts.dropFirst().joined(separator: ".")
     }
 
-    /// "Microfone do Studio Display" → "Studio Display"; "Microfone (MacBook Pro)" → "MacBook Pro".
+    /// "Microfone do Studio Display" or "Studio Display Microphone" → "Studio Display";
+    /// "Microfone (MacBook Pro)" → "MacBook Pro".
     static func device(_ name: String) -> String {
-        name.replacingOccurrences(of: "Microfone do ", with: "")
+        var short = name.replacingOccurrences(of: "Microfone do ", with: "")
             .replacingOccurrences(of: "Microfone (", with: "")
+            .replacingOccurrences(of: "Microphone (", with: "")
             .replacingOccurrences(of: ")", with: "")
+        if short.hasSuffix(" Microphone"), short.count > 11 { short.removeLast(11) }
+        return short
     }
 }

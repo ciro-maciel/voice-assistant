@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -54,24 +54,48 @@
     <div class="orb" id="orb"></div>
     <div>
       <div class="label">Assistant</div>
-      <div class="state" id="state">Conectando</div>
-      <div class="hint" id="hint">Diga o nome, ou aperte espaço aqui.</div>
+      <div class="state" id="state" data-t="connecting">Connecting</div>
+      <div class="hint" id="hint" data-t="hint">Say the name, or press Space here.</div>
     </div>
     <div class="actions">
-      <button id="mute" aria-pressed="false">Microfone</button>
-      <button id="stop">Parar</button>
+      <button id="mute" aria-pressed="false" data-t="microphone">Microphone</button>
+      <button id="stop" data-t="stop">Stop</button>
     </div>
   </header>
   <div id="log"></div>
 </main>
-<form id="form"><div><input id="input" placeholder="Ou escreva aqui" autocomplete="off"><button class="primary">Enviar</button></div></form>
+<form id="form"><div><input id="input" placeholder="Or type here" data-t-placeholder="typeHere" autocomplete="off"><button class="primary" data-t="send">Send</button></div></form>
 <script>
+  // English and Brazilian Portuguese, following the browser's (the Mac's) language. A key
+  // missing in Portuguese falls back to English.
+  const TEXT = {
+    en: {
+      connecting: "Connecting", hint: "Say the name, or press Space here.", microphone: "Microphone", muted: "Muted",
+      stop: "Stop", typeHere: "Or type here", send: "Send",
+      waiting: "Available", listening: "Go ahead", hearing: "Listening", thinking: "Thinking", speaking: "Speaking",
+      ignored: "heard and ignored ({reason}): {text}", cost: "US$ {cost} for this answer",
+      "reason.noName": "no name", "reason.echo": "echo", "reason.busy": "busy", "reason.noise": "noise",
+    },
+    "pt-BR": {
+      connecting: "Conectando", hint: "Diga o nome, ou aperte espaço aqui.", microphone: "Microfone", muted: "Mudo",
+      stop: "Parar", typeHere: "Ou escreva aqui", send: "Enviar",
+      waiting: "Disponível", listening: "Pode falar", hearing: "Escutando", thinking: "Pensando", speaking: "Falando",
+      ignored: "ouvi e ignorei ({reason}): {text}", cost: "US$ {cost} nesta resposta",
+      "reason.noName": "sem o nome", "reason.echo": "eco", "reason.busy": "ocupado", "reason.noise": "ruído",
+    },
+  };
+  const LANG = (navigator.languages?.[0] ?? navigator.language ?? "en").toLowerCase().startsWith("pt") ? "pt-BR" : "en";
+  const t = (key, params = {}) => (TEXT[LANG][key] ?? TEXT.en[key] ?? "").replace(/\{(\w+)\}/g, (_, k) => params[k] ?? "");
+  document.documentElement.lang = LANG;
+  document.querySelectorAll("[data-t]").forEach((el) => { el.textContent = t(el.dataset.t); });
+  document.querySelectorAll("[data-t-placeholder]").forEach((el) => { el.placeholder = t(el.dataset.tPlaceholder); });
+
   const STATES = {
-    waiting:   ["Disponível", false, false],
-    listening: ["Pode falar", true, true],
-    hearing:   ["Escutando", true, true],
-    thinking:  ["Pensando", true, true],
-    speaking:  ["Falando", true, true],
+    waiting:   [t("waiting"), false, false],
+    listening: [t("listening"), true, true],
+    hearing:   [t("hearing"), true, true],
+    thinking:  [t("thinking"), true, true],
+    speaking:  [t("speaking"), true, true],
   };
   const $ = (id) => document.getElementById(id);
   const log = $("log");
@@ -96,14 +120,14 @@
     $("orb").classList.toggle("pulse", pulse);
   });
   on("level", (l) => { $("orb").style.transform = `scale(${1 + l * 0.35})`; });
-  on("heard", ({ text, action, reason }) => { if (action === "ignore") add("meta", `ouvi e ignorei (${reason}): ${text}`); });
+  on("heard", ({ text, action, reason }) => { if (action === "ignore") add("meta", t("ignored", { reason: t(`reason.${reason}`) || reason, text })); });
   on("user", (text) => { add("msg user", text); reply = null; });
   on("delta", (d) => { reply ??= add("msg assistant", ""); reply.textContent += d; reply.scrollIntoView({ block: "end" }); });
   on("tool", (t) => { add("meta", t); reply = null; });
-  on("turnEnd", ({ costUsd }) => { if (costUsd) add("meta", `US$ ${costUsd.toFixed(4)} nesta resposta`); reply = null; });
+  on("turnEnd", ({ costUsd }) => { if (costUsd) add("meta", t("cost", { cost: costUsd.toFixed(4) })); reply = null; });
   on("status", (t) => add("meta", t));
   on("error", (t) => add("meta error", t));
-  on("muted", (m) => { $("mute").setAttribute("aria-pressed", m); $("mute").textContent = m ? "Mudo" : "Microfone"; });
+  on("muted", (m) => { $("mute").setAttribute("aria-pressed", m); $("mute").textContent = m ? t("muted") : t("microphone"); });
 
   $("mute").onclick = () => post("/mute");
   $("stop").onclick = () => post("/stop");

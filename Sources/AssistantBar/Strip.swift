@@ -36,17 +36,17 @@ struct StripView: View {
     private var line: String {
         let rows = model.snapshot?.conversation.rows ?? []
         switch model.state {
-        case .listening: return "Diga o que precisa"
+        case .listening: return L("strip.listening")
         case .drafting:
             let n = model.snapshot?.draft?.count ?? 0
-            let phrase = model.snapshot?.settings.actionPhrases?.first ?? "pode fazer"
-            return "\(n) \(n == 1 ? "trecho anotado" : "trechos anotados") · diga \u{201C}\(phrase)\u{201D}"
+            let phrase = model.snapshot?.settings.actionPhrases?.first ?? L("default.actionPhrase")
+            return L("strip.drafted", count: n) + " · " + L("strip.say", phrase)
         case .hearing: return "…"
         case .thinking:
             if let last = rows.last, last.role == "tool" { return last.text }
             return rows.last(where: { $0.role == "user" })?.text ?? ""
         case .speaking: return model.spokenLine
-        case .muted: return model.snapshot?.isMuted == true ? "Microfone silenciado no menu" : "Falta ligar o Microfone para o Assistant"
+        case .muted: return model.snapshot?.isMuted == true ? L("strip.mutedInMenu") : L("strip.needsMicrophone")
         default: return ""
         }
     }

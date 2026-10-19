@@ -38,7 +38,7 @@ struct Shortcut: Codable, Hashable {
         kVK_UpArrow: ("↑", "arrow-up", "\u{F700}"), kVK_DownArrow: ("↓", "arrow-down", "\u{F701}"),
         kVK_Return: ("↩", "corner-down-left", "\r"), kVK_ANSI_KeypadEnter: ("⌤", "corner-down-left", "\u{3}"),
         kVK_Delete: ("⌫", "backspace", "\u{8}"), kVK_ForwardDelete: ("⌦", nil, "\u{F728}"),
-        kVK_Tab: ("⇥", nil, "\t"), kVK_Space: ("Espaço", nil, " "), kVK_Escape: ("⎋", nil, "\u{1B}"),
+        kVK_Tab: ("⇥", nil, "\t"), kVK_Space: (L("key.space"), nil, " "), kVK_Escape: ("⎋", nil, "\u{1B}"),
         kVK_Home: ("↖", nil, "\u{F729}"), kVK_End: ("↘", nil, "\u{F72B}"),
         kVK_PageUp: ("⇞", nil, "\u{F72C}"), kVK_PageDown: ("⇟", nil, "\u{F72D}"),
     ]
@@ -48,7 +48,7 @@ struct Shortcut: Codable, Hashable {
         kVK_F11: 11, kVK_F12: 12, kVK_F13: 13, kVK_F14: 14, kVK_F15: 15, kVK_F16: 16, kVK_F17: 17, kVK_F18: 18, kVK_F19: 19, kVK_F20: 20,
     ]
 
-    /// The key's own name: "F", "←", "F5", "Espaço". Letters follow the current keyboard layout.
+    /// The key's own name: "F", "←", "F5", "Space". Letters follow the current keyboard layout.
     var keyName: String {
         if let s = Self.special[Int(keyCode)] { return s.glyph }
         if let f = Self.functionKeys[Int(keyCode)] { return "F\(f)" }

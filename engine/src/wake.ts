@@ -25,10 +25,12 @@ export function matchWake(transcript: string, wakeWords: string[]): WakeMatch {
   return { hasWake: false, rest: transcript.trim() };
 }
 
-// Whisper invents these on silence, noise and breathing.
+// Whisper invents these on silence, noise and breathing, in either language.
 const HALLUCINATIONS = [
   "legendas pela comunidade amara org", "obrigado", "obrigada", "tchau", "e ai",
   "inscreva se no canal", "legenda", "musica", "aplausos", "risos", "silencio",
+  "thank you", "thanks for watching", "thank you for watching", "bye", "you",
+  "subtitles by the amara org community", "please subscribe", "music", "applause", "laughter", "silence",
 ];
 
 export function isNoise(transcript: string): boolean {
@@ -37,12 +39,17 @@ export function isNoise(transcript: string): boolean {
   return n.length < 2 || HALLUCINATIONS.includes(n) || looksLikeAddress || /^\[.*\]$|^\(.*\)$/.test(transcript.trim());
 }
 
-// "Conversa nova", "nova conversa", "começa do zero", "esquece essa conversa": the whole
+// "Conversa nova", "nova conversa", "começa do zero", "esquece essa conversa" (and the same in
+// English): the whole
 // sentence is the command, so a question that only mentions a new conversation still goes on.
 const NEW_CONVERSATION = [
   /^(vamos )?(comecar |abrir |abre |abra |inicia |iniciar )?(uma )?(conversa nova|nova conversa)( por favor)?$/,
   /^(comeca|comecar|vamos comecar) do zero( por favor)?$/,
   /^esquece (essa|esta) conversa( por favor)?$/,
+  // English: "new conversation", "let's start a new conversation", "start over", "forget this conversation".
+  /^(lets |let s )?(start |open |begin )?(a )?new conversation( please)?$/,
+  /^(lets |let s )?(start over|start from scratch)( please)?$/,
+  /^forget (this|that) conversation( please)?$/,
 ];
 
 export function isNewConversation(text: string): boolean {

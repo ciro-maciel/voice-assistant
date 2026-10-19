@@ -1,7 +1,7 @@
 // Starts Assistant: ear (local Whisper), brain (persistent Claude Code session),
 // mouth (Fish Audio, or the Mac's voice) and the HUD on http://localhost:4780.
 import { Brain, claudeBin, claudeCandidates } from "./brain";
-import { CONFIG_FILE, HISTORY_FILE, HUD_PORT, INPUT_PREFERENCE, JOURNAL_DIR, SESSION_FILE, WORKING_DIR } from "./config";
+import { CONFIG_FILE, HISTORY_FILE, HUD_PORT, INPUT_PREFERENCE, JOURNAL_DIR, LANGUAGE, SESSION_FILE, UI_LANGUAGE, WORKING_DIR } from "./config";
 import { appendJournal, loadSession, recentJournal, saveSession, shouldResume, summarize } from "./memory";
 import { isNewConversation } from "./wake";
 import { audioBridge } from "./audio-bridge";
@@ -10,14 +10,19 @@ import { buildRequest, Draft, findTrigger } from "./draft";
 import { buildQuestion, DirectedClassifier } from "./directed";
 import { Ear, listInputs, type Utterance } from "./ear";
 import {
-  BRAIN_MODELS, CONFIRM_ACTIONS, FISH_MODELS, loadSettings, macVoices, pick, saveSettings, type Settings,
+  BRAIN_MODELS, confirmActions, FISH_MODELS, loadSettings, macVoices, pick, saveSettings, type Settings,
   voiceRules, whisperModels, whisperPrompt,
 } from "./settings";
 import { startHud } from "./hud";
 import { Mouth } from "./mouth";
 import { SentenceBuffer } from "./sentences";
+import { type Key, t } from "./strings";
 import { takeOver } from "./single-instance";
 import { NEW_CONVERSATION_AFTER_MS, readHistory, Transcript } from "./transcript";
+
+// Words on screen follow the Mac's language; what is said out loud follows the conversation's.
+const ui = (key: Key, params?: Record<string, string | number>) => t(UI_LANGUAGE, key, params);
+const spoken = (key: Key, params?: Record<string, string | number>) => t(LANGUAGE, key, params);
 
 const previous = await takeOver(HUD_PORT);
 if (previous) console.log(`parei a instância anterior (pid ${previous})`);
@@ -65,7 +70,7 @@ async function journal(conversationId: string, rows: typeof transcript.rows, at:
   if (!summary) return;
   appendJournal(JOURNAL_DIR, at, summary);
   brain.memory = recentJournal(JOURNAL_DIR);
-  hud.send("status", "resumo da conversa guardado no diário");
+  hud.send("status", ui("status.journalSaved"));
 }
 
 // A conversation that ended while the app was closed is summarized at the next start.
@@ -95,8 +100,8 @@ function newConversation() {
   brain.newSession();
   sessionStartedAt = 0;
   saveSession(SESSION_FILE, undefined);
-  hud.send("status", "conversa nova");
-  mouth.say("Conversa nova.");
+  hud.send("status", ui("status.newConversation"));
+  mouth.say(spoken("say.newConversation"));
 }
 
 // --- timings: how long each stage of the last answer took ----------------------------------
@@ -142,7 +147,7 @@ const hud = startHud({
       heard: recentHeard,
       draft: draft.entries,
       session: { model: brain.model, claudePath, claudeVersion: versionOf(claudePath), startedAt: sessionStartedAt, isReady: sessionStartedAt > 0 },
-      settings: { ...settings, whisperModel: ear.whisperModel, inputPreference: INPUT_PREFERENCE, workingFolder: WORKING_DIR, configFile: CONFIG_FILE },
+      settings: { ...settings, whisperModel: ear.whisperModel, inputPreference: INPUT_PREFERENCE, workingFolder: WORKING_DIR, configFile: CONFIG_FILE, language: LANGUAGE },
       timings: lastTimings,
       memory: { isResumed: isResuming, journalDays: recentJournal(JOURNAL_DIR) ? 2 : 0 },
     };
@@ -155,7 +160,7 @@ const hud = startHud({
     fishModels: FISH_MODELS,
     macVoices: macVoices(),
     claudePaths: claudeCandidates().map((path) => ({ path, version: versionOf(path) })),
-    confirmActions: CONFIRM_ACTIONS,
+    confirmActions: confirmActions(),
   }),
   // Applied at once and saved for the next start. Only what changed is touched.
   settings: async (raw) => {
@@ -166,23 +171,23 @@ const hud = startHud({
     apply(settings);
     if (patch.inputDevice) {
       ear.useDevice(patch.inputDevice);
-      hud.send("status", `microfone: ${ear.device}`);
+      hud.send("status", ui("status.microphone", { device: ear.device }));
     }
     const changed = (k: keyof Settings) => k in patch && JSON.stringify(before[k]) !== JSON.stringify(settings[k]);
     if (changed("brainModel") || changed("folders") || changed("confirmActions") || changed("claudePath")
         || changed("wakeWords") || changed("voiceName")) {
       brain.reload();
-      hud.send("status", "sessão reaberta com os ajustes novos");
+      hud.send("status", ui("status.sessionReopened"));
     }
     if (changed("isEchoCancelOn")) ear.setEchoCancel(settings.isEchoCancelOn);
     if (changed("whisperModel") || changed("wakeWords")) {
-      hud.send("status", `carregando o Whisper ${settings.whisperModel}`);
+      hud.send("status", ui("status.whisperLoading", { model: settings.whisperModel }));
       await ear.useWhisperModel(settings.whisperModel);
-      hud.send("status", `Whisper: ${settings.whisperModel}`);
+      hud.send("status", ui("status.whisper", { model: settings.whisperModel }));
     }
     return { ok: true };
   },
-  sample: () => mouth.say("Esta é a minha voz, na velocidade de agora."),
+  sample: () => mouth.say(spoken("say.sample")),
   newConversation: () => newConversation(),
   act: () => act(),
   clearDraft: () => { draft.clear(); publishState(); },
@@ -250,8 +255,8 @@ const directed = new DirectedClassifier();
 function toDraft(text: string, why?: string) {
   draft.prune(settings.draftMaxAgeMs);
   draft.add(text);
-  noteHeard({ at: Date.now(), text, action: "anotado",
-    reason: `${why ? `${why}; ` : ""}no rascunho (${draft.entries.length}); diga \u201C${settings.actionPhrases[0]}\u201D para executar` });
+  noteHeard({ at: Date.now(), text, action: "drafted",
+    reason: ui("heard.drafted", { why: why ? `${why}; ` : "", count: draft.entries.length, phrase: settings.actionPhrases[0] }) });
   hud.send("heard", { text, action: "draft" });
   publishState();
 }
@@ -281,7 +286,7 @@ function ask(text: string, heard?: { endedAt: number; transcribedAt: number }) {
 function act(extra = "", heard?: { endedAt: number; transcribedAt: number }) {
   draft.prune(settings.draftMaxAgeMs);
   if (draft.isEmpty && !extra.trim()) {
-    mouth.say("Não tenho nada anotado desde a última ação.");
+    mouth.say(spoken("say.nothingDrafted"));
     return;
   }
   if (mouth.isSpeaking || brain.isBusy) interruptAll();
@@ -299,22 +304,19 @@ ear.on("speechEnd", () => { hearing = false; publishState(); });
 ear.on("level", (level: number) => hud.send("level", level));
 // The last things heard and what was done with them, so a request that went nowhere has a
 // reason on screen (Agora) and in the log, instead of "Escutando" followed by silence.
+// `action` is an id the app puts in words: accepted, drafted, run, forMe, ignored, dropped, joined, error.
 type Heard = { at: number; text: string; action: string; reason?: string };
 const recentHeard: Heard[] = [];
-const REASONS: Record<string, string> = {
-  "sem o nome": "sem o nome, e a janela de resposta estava fechada",
-  eco: "começou colada à minha voz: tratei como eco",
-  ocupado: "eu estava trabalhando; só o nome interrompe",
-};
+const REASONS: Record<string, Key> = { noName: "reason.noName", echo: "reason.echo", busy: "reason.busy" };
 function noteHeard(h: Heard) {
   recentHeard.unshift(h);
   recentHeard.splice(8);
   console.log(`ouvi: "${h.text}" → ${h.action}${h.reason ? ` (${h.reason})` : ""}`);
 }
 ear.on("dropped", (text: string, seconds: number) => {
-  noteHeard({ at: Date.now(), text: text || "(nada)", action: "descartado",
-    reason: text ? `o Whisper devolveu algo que parece ruído (${seconds} s de áudio)` : `o Whisper não entendeu nada (${seconds} s de áudio)` });
-  hud.send("heard", { text, action: "ignore", reason: "ruído" });
+  noteHeard({ at: Date.now(), text: text || ui("heard.nothing"), action: "dropped",
+    reason: ui(text ? "heard.noise" : "heard.empty", { seconds }) });
+  hud.send("heard", { text, action: "ignore", reason: "noise" });
 });
 ear.on("utterance", (u: Utterance) => {
   const heardAt = { endedAt: u.endedAt, transcribedAt: Date.now() };
@@ -323,7 +325,8 @@ ear.on("utterance", (u: Utterance) => {
   // The action phrase runs the draft, also over my voice or my work (it interrupts them).
   const trigger = settings.isDraftOn ? findTrigger(u.text, settings.actionPhrases) : undefined;
   if (trigger?.found && !isEcho) {
-    noteHeard({ at: Date.now(), text: u.text, action: "executar", reason: `comando de ação: ${draft.entries.length} ${draft.entries.length === 1 ? "trecho anotado" : "trechos anotados"}` });
+    const count = draft.entries.length;
+    noteHeard({ at: Date.now(), text: u.text, action: "run", reason: ui(count === 1 ? "heard.actionPhrase.one" : "heard.actionPhrase.other", { count }) });
     hud.send("heard", { text: u.text, action: "act" });
     act([trigger.before, trigger.after].filter(Boolean).join(" "), heardAt);
     return;
@@ -340,29 +343,29 @@ ear.on("utterance", (u: Utterance) => {
   });
   // Without the name and outside the window: ask "is this for me?" (Device-directed
   // Utterance Detection, Amazon 2018). Yes runs it now; no keeps it in the draft.
-  if (action.kind === "ignore" && action.reason === "sem o nome" && settings.isDirectedOn && !isEcho) {
+  if (action.kind === "ignore" && action.reason === "noName" && settings.isDirectedOn && !isEcho) {
     const question = buildQuestion(u.text, transcript.rows, draft.entries.map((e) => e.text));
     directed.classify(question).then((verdict) => {
       if (verdict.isDirected) {
-        noteHeard({ at: Date.now(), text: u.text, action: "para mim", reason: verdict.reason });
+        noteHeard({ at: Date.now(), text: u.text, action: "forMe", reason: verdict.reason });
         hud.send("heard", { text: u.text, action: "send" });
         ask(u.text, heardAt);
       } else if (settings.isDraftOn) {
-        toDraft(u.text, `não era para mim: ${verdict.reason}`);
+        toDraft(u.text, ui("heard.notForMe", { reason: verdict.reason }));
       } else {
-        noteHeard({ at: Date.now(), text: u.text, action: "ignorado", reason: `não era para mim: ${verdict.reason}` });
+        noteHeard({ at: Date.now(), text: u.text, action: "ignored", reason: ui("heard.notForMe", { reason: verdict.reason }) });
       }
     });
     return;
   }
   // Not for me right now, but his words: into the draft, instead of the bin.
-  if (action.kind === "ignore" && settings.isDraftOn && action.reason !== "eco" && !isEcho) {
+  if (action.kind === "ignore" && settings.isDraftOn && action.reason !== "echo" && !isEcho) {
     toDraft(u.text);
     return;
   }
   hud.send("heard", { text: u.text, action: action.kind, reason: "reason" in action ? action.reason : undefined });
-  noteHeard({ at: Date.now(), text: u.text, action: action.kind === "ignore" ? "ignorado" : action.kind === "continue" ? "juntado ao pedido" : "aceito",
-    reason: "reason" in action ? REASONS[action.reason] ?? action.reason : undefined });
+  noteHeard({ at: Date.now(), text: u.text, action: action.kind === "ignore" ? "ignored" : action.kind === "continue" ? "joined" : "accepted",
+    reason: "reason" in action ? ui(REASONS[action.reason]) : undefined });
   const heard = { endedAt: u.endedAt, transcribedAt: Date.now() };
   if (action.kind === "summon") summon();
   if (action.kind === "send") ask(action.text, heard);
@@ -380,27 +383,26 @@ ear.on("utterance", (u: Utterance) => {
 });
 ear.on("error", (error) => {
   console.log(`ouvido: ${String(error)}`);
-  noteHeard({ at: Date.now(), text: "(áudio perdido)", action: "erro", reason: `a transcrição falhou: ${String(error)}` });
-  hud.send("error", `ouvido: ${String(error)}`);
+  noteHeard({ at: Date.now(), text: ui("heard.lostAudio"), action: "error", reason: ui("heard.transcriptionFailed", { error: String(error) }) });
+  hud.send("error", ui("error.ear", { error: String(error) }));
 });
 ear.on("deadMic", (device: string) => {
-  const help = "Libere o app que me abriu em Ajustes do Sistema, Privacidade e Segurança, Microfone, e me reinicie.";
-  console.log(`o microfone (${device}) só entrega silêncio. ${help}`);
-  hud.send("error", `o microfone (${device}) só entrega silêncio. ${help}`);
-  mouth.say(`Não estou ouvindo nada pelo microfone. ${help}`);
+  console.log(`o microfone (${device}) só entrega silêncio`);
+  hud.send("error", ui("error.deadMic", { device, help: ui("error.deadMicHelp") }));
+  mouth.say(spoken("say.deadMic", { help: spoken("error.deadMicHelp") }));
 });
 ear.on("echoCancel", (isOn: boolean) => {
   console.log(isOn ? `cancelamento de eco ligado: o app grava e toca (${ear.device})` : "cancelamento de eco desligado: o app saiu; voltei ao sox");
-  hud.send("status", isOn ? "cancelamento de eco ligado" : "cancelamento de eco desligado");
+  hud.send("status", ui(isOn ? "status.echoOn" : "status.echoOff"));
 });
-ear.on("liveMic", (device: string) => hud.send("status", `microfone voltou: ${device}`));
+ear.on("liveMic", (device: string) => hud.send("status", ui("status.micBack", { device })));
 
 brain.on("started", () => {
   sessionStartedAt = Date.now();
   transcript.resetSessionTotal();
 });
 brain.on("session", () => persist());
-brain.on("ready", () => hud.send("status", "cérebro pronto"));
+brain.on("ready", () => hud.send("status", ui("status.brainReady")));
 function speak(sentence: string) {
   if (turn && !turn.firstSentenceAt) turn.firstSentenceAt = Date.now();
   mouth.say(sentence);
@@ -438,12 +440,12 @@ brain.on("exit", (code: number, stderr: string) => {
   const reason = stderr ? `: ${stderr.split("\n").slice(-3).join(" ")}` : "";
   console.log(`a sessão do Claude Code saiu (código ${code})${reason}`);
   if (brainFailures >= MAX_BRAIN_FAILURES) {
-    hud.send("error", `a sessão do Claude Code falhou ${brainFailures} vezes seguidas e eu parei de reabrir${reason}`);
-    mouth.say("O Claude Code não está abrindo. Parei de tentar; o motivo está no log.");
+    hud.send("error", ui("error.claudeGaveUp", { count: brainFailures, reason }));
+    mouth.say(spoken("say.claudeDown"));
     return;
   }
   const delayMs = 1000 * 2 ** (brainFailures - 1);
-  hud.send("error", `a sessão do Claude Code saiu (código ${code})${reason}; reabrindo em ${delayMs / 1000} s`);
+  hud.send("error", ui("error.claudeExited", { code, reason, seconds: delayMs / 1000 }));
   setTimeout(() => brain.start(), delayMs);
 });
 
@@ -471,7 +473,7 @@ mouth.on("idle", () => {
   answered();
   publishState();
 });
-mouth.on("error", (error) => hud.send("error", `voz: ${String(error)}`));
+mouth.on("error", (error) => hud.send("error", ui("error.voice", { error: String(error) })));
 
 function shutdown() {
   directed.stop();
@@ -486,7 +488,7 @@ process.on("SIGTERM", shutdown);
 
 brain.start();
 // Open the classifier now, so the first "is this for me?" does not pay the session's start.
-directed.classify(buildQuestion("teste", [], [])).catch(() => undefined);
+directed.classify(buildQuestion(LANGUAGE === "pt-BR" ? "teste" : "test", [], [])).catch(() => undefined);
 console.log(`painel: http://localhost:${HUD_PORT}`);
 await ear.start({
   device: settings.inputDevice,
@@ -494,4 +496,5 @@ await ear.start({
 });
 console.log(`microfone: ${ear.device}`);
 console.log(`ouvindo. Diga "${settings.wakeWords[0]}" para chamar.`);
-mouth.say(isResuming && transcript.rows.length ? "Estou ouvindo. Continuo a conversa de antes." : "Estou ouvindo.");
+console.log(`idioma da conversa: ${LANGUAGE}; da tela: ${UI_LANGUAGE}`);
+mouth.say(spoken(isResuming && transcript.rows.length ? "say.readyResumed" : "say.ready"));

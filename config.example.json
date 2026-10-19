@@ -1,20 +1,21 @@
 {
-  "wakeWords": ["jarvis", "jarbas", "jervis"],
+  "language": "en",
+  "wakeWords": ["jarvis", "jervis", "travis"],
   "userName": "Ana",
   "workingDir": "~/code/notes",
   "folders": ["~/code/website", "~/code/api"],
   "inputPreference": ["USB Microphone", "MacBook Pro Microphone"],
   "whisperModelsDir": "~/Library/Application Support/voice-assistant/models",
   "whisperModel": "large-v3-turbo",
-  "whisperLanguage": "pt",
-  "whisperPrompt": "{name}, olha o deploy do site e o commit no repositório, por favor.",
+  "whisperLanguage": "en",
+  "whisperPrompt": "{name}, check the site's deploy and the last commit in the repository, please.",
   "fishVoiceId": "your-fish-audio-voice-id",
-  "voiceName": "Nome da voz",
+  "voiceName": "Voice name",
   "voiceSpeed": 1.2,
   "fishModel": "s2.1-pro",
   "fishApiKeyFile": "~/.config/voice-assistant/fish.env",
-  "fallbackVoice": "Luciana",
+  "fallbackVoice": "Samantha",
   "brainModel": "claude-haiku-5-5",
   "dataDir": "~/Library/Application Support/voice-assistant",
-  "instructions": "- Os projetos ficam lado a lado em ~/code."
+  "instructions": "- The projects sit side by side in ~/code."
 }

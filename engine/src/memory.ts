@@ -5,7 +5,8 @@
 //   new session reads the recent days, so a fresh start still knows what was decided.
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { USER_NAME } from "./config";
+import { LANGUAGE, USER_NAME } from "./config";
+import type { Language } from "./language";
 import type { Row } from "./transcript";
 
 export type SavedSession = {
@@ -45,17 +46,21 @@ export function dayKey(ms: number): string {
 // --- journal ------------------------------------------------------------------------------
 
 /// The conversation as plain text for the summarizer: who said what, and the tools used.
-export function conversationText(rows: Row[], user = USER_NAME ?? "Pessoa"): string {
+export function conversationText(rows: Row[], user = USER_NAME, lang: Language = LANGUAGE): string {
+  const pt = lang === "pt-BR";
+  const person = user ?? (pt ? "Pessoa" : "Person");
   return rows
-    .map((r) => (r.role === "user" ? `${user}: ${r.text}` : r.role === "tool" ? `(ferramenta: ${r.text})` : `Assistente: ${r.text}`))
+    .map((r) => (r.role === "user" ? `${person}: ${r.text}` : r.role === "tool" ? `(${pt ? "ferramenta" : "tool"}: ${r.text})` : `${pt ? "Assistente" : "Assistant"}: ${r.text}`))
     .join("\n");
 }
 
-export function appendJournal(dir: string, at: number, summary: string) {
+export function appendJournal(dir: string, at: number, summary: string, lang: Language = LANGUAGE) {
   const file = join(dir, `${dayKey(at)}.md`);
   mkdirSync(dir, { recursive: true });
   const time = new Date(at).toTimeString().slice(0, 5);
-  const head = existsSync(file) ? "" : `# Conversas de ${dayKey(at).split("-").reverse().join("/")}\n`;
+  const date = dayKey(at).split("-");
+  const head = existsSync(file) ? ""
+    : lang === "pt-BR" ? `# Conversas de ${[...date].reverse().join("/")}\n` : `# Conversations of ${date.join("-")}\n`;
   appendFileSync(file, `${head}\n## ${time}\n\n${summary.trim()}\n`);
 }
 
@@ -70,13 +75,23 @@ export function recentJournal(dir: string, now = Date.now(), days = 2, maxChars 
   return text.length > maxChars ? "…\n" + text.slice(-maxChars) : text;
 }
 
-export const SUMMARY_PROMPT = `
+const SUMMARY_PROMPT_PT = `
 Abaixo está uma conversa por voz entre uma pessoa e o assistente dela. Escreva um resumo para o
 próprio assistente ler amanhã, em português, em no máximo seis tópicos curtos começando com "- ":
 o que foi pedido, o que foi feito (com o nome de repositórios e arquivos quando houver), o que foi
 decidido e o que ficou pendente. Nada de introdução nem conclusão. Se a conversa não teve nada que
 valha lembrar (só cumprimentos ou testes), responda apenas: NADA
 `.trim();
+
+const SUMMARY_PROMPT_EN = `
+Below is a voice conversation between a person and their assistant. Write a summary for the
+assistant itself to read tomorrow, in English, in at most six short points starting with "- ":
+what was asked, what was done (with the names of repositories and files when there are any), what
+was decided and what is still pending. No introduction, no conclusion. If the conversation had
+nothing worth remembering (only greetings or tests), answer only: NOTHING
+`.trim();
+
+export const summaryPrompt = (lang: Language = LANGUAGE) => (lang === "pt-BR" ? SUMMARY_PROMPT_PT : SUMMARY_PROMPT_EN);
 
 /// Asks a one-shot Claude Code (no tools, no settings) for the summary. Undefined when there is
 /// nothing worth keeping or the call fails.
@@ -85,12 +100,12 @@ export async function summarize(claudePath: string, rows: Row[], model = "claude
   if (!rows.some((r) => r.role === "user")) return undefined;
   const proc = Bun.spawn(
     [claudePath, "-p", "--model", model, "--setting-sources", "", "--tools", "", "--output-format", "text"],
-    { stdin: new TextEncoder().encode(`${SUMMARY_PROMPT}\n\n---\n${text}`), stdout: "pipe", stderr: "ignore",
+    { stdin: new TextEncoder().encode(`${summaryPrompt()}\n\n---\n${text}`), stdout: "pipe", stderr: "ignore",
       env: { ...process.env, ASSISTANT_SESSION: "1" } },
   );
   const timer = setTimeout(() => proc.kill(), 60_000);
   const out = (await new Response(proc.stdout).text()).trim();
   clearTimeout(timer);
-  if ((await proc.exited) !== 0 || !out || /^NADA\.?$/i.test(out)) return undefined;
+  if ((await proc.exited) !== 0 || !out || /^(NADA|NOTHING)\.?$/i.test(out)) return undefined;
   return out;
 }

@@ -2,6 +2,8 @@
 // away for lack of the name or a closed window. An action phrase ("pode fazer") hands the draft
 // to Claude Code, with a prompt that turns the pieces into the request and runs it. Pure, so
 // the tests drive it without a microphone.
+import { LANGUAGE } from "./config";
+import type { Language } from "./language";
 import { normalize } from "./wake";
 
 export type Entry = { at: number; text: string };
@@ -60,9 +62,20 @@ export function findTrigger(transcript: string, phrases: string[]): Trigger {
 const clock = (ms: number) => new Date(ms).toTimeString().slice(0, 8);
 
 /// What Claude Code receives when the person acts: the pieces with their times, and how to read them.
-export function buildRequest(entries: Entry[], extra = ""): string {
+export function buildRequest(entries: Entry[], extra = "", lang: Language = LANGUAGE): string {
   const lines = entries.map((e) => `[${clock(e.at)}] ${e.text}`);
-  if (extra.trim()) lines.push(`[agora] ${extra.trim()}`);
+  if (extra.trim()) lines.push(`[${lang === "pt-BR" ? "agora" : "now"}] ${extra.trim()}`);
+  if (lang === "en") return `
+The request below was spoken out loud, in pieces, and the person said to run it. The transcript
+comes from speech recognition: it may have wrong words, repetitions, cut sentences, hesitations and
+parts that were not meant for you (them talking to someone else or to themselves).
+
+Build the request they want from the pieces, ignore what is not for you, and carry it out.
+If an essential point is truly ambiguous, ask in one short sentence before acting.
+
+Transcript since the last action:
+${lines.join("\n")}
+`.trim();
   return `
 O pedido abaixo foi falado em voz alta, em pedaços, e a pessoa mandou executar. A transcrição vem de
 reconhecimento de voz: pode ter palavras trocadas, repetições, frases cortadas, hesitações e

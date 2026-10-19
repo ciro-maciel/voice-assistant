@@ -2,7 +2,7 @@
 // out), so each question costs no startup and the conversation keeps its context.
 import { EventEmitter } from "node:events";
 import { existsSync } from "node:fs";
-import { BRAIN_MODEL, CLAUDE_CANDIDATES, FOLDERS, USER_NAME, WORKING_DIR } from "./config";
+import { BRAIN_MODEL, CLAUDE_CANDIDATES, FOLDERS, LANGUAGE, USER_NAME, WORKING_DIR } from "./config";
 import { DEFAULTS, voiceRules } from "./settings";
 
 /// The claude to run: the one chosen in the app if it still exists, else the first candidate found.
@@ -20,6 +20,13 @@ export function claudeCandidates(): string[] {
 
 
 type Event = Record<string, any>;
+
+/// The line above the journal in the system prompt, in the conversation's language.
+function journalIntro(): string {
+  return LANGUAGE === "pt-BR"
+    ? `O que ficou das conversas recentes${USER_NAME ? ` com ${USER_NAME}` : ""} (resumos seus, do mais antigo ao mais novo; use como contexto, não leia em voz alta):`
+    : `What remains of the recent conversations${USER_NAME ? ` with ${USER_NAME}` : ""} (your own summaries, oldest to newest; use them as context, do not read them aloud):`;
+}
 
 export class Brain extends EventEmitter {
   isBusy = false;
@@ -71,7 +78,7 @@ export class Brain extends EventEmitter {
       "--model", this.model,
       "--permission-mode", "bypassPermissions",
       "--append-system-prompt", this.memory
-        ? `${this.rules}\n\nO que ficou das conversas recentes${USER_NAME ? ` com ${USER_NAME}` : ""} (resumos seus, do mais antigo ao mais novo; use como contexto, não leia em voz alta):\n\n${this.memory}`
+        ? `${this.rules}\n\n${journalIntro()}\n\n${this.memory}`
         : this.rules,
       ...this.folders.flatMap((dir) => ["--add-dir", dir]),
       ...(this.sessionId ? ["--resume", this.sessionId] : []),

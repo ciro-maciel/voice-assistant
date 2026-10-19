@@ -36,14 +36,14 @@ test("saved choices sit over the defaults, and a broken file means defaults", ()
 
 describe("voiceRules", () => {
   test("names the assistant and lists only the actions that still need a yes", () => {
-    const rules = voiceRules({ ...DEFAULTS, wakeWords: ["jarvis"], confirmActions: ["push", "pay"] });
+    const rules = voiceRules({ ...DEFAULTS, wakeWords: ["jarvis"], confirmActions: ["push", "pay"] }, undefined, "", "pt-BR");
     expect(rules).toContain("Seu nome é Jarvis.");
     expect(rules).toContain("autorizar aquela ação específica nesta conversa: push, pagar.");
     expect(rules).not.toContain("deploy");
   });
 
   test("with nothing to confirm, it says so instead of an empty list", () => {
-    expect(voiceRules({ ...DEFAULTS, confirmActions: [] })).toContain("Nenhuma ação precisa de autorização falada");
+    expect(voiceRules({ ...DEFAULTS, confirmActions: [] }, undefined, "", "pt-BR")).toContain("Nenhuma ação precisa de autorização falada");
   });
 });
 
@@ -52,7 +52,7 @@ test("the Whisper prompt carries the name, as a sentence", () => {
 });
 
 test("the voice rules name the person when the config does, and carry the extra instructions", () => {
-  expect(voiceRules(DEFAULTS, "Ana", "- Os projetos ficam em ~/code.")).toContain("Ana fala com você pelo microfone");
-  expect(voiceRules(DEFAULTS, "Ana", "- Os projetos ficam em ~/code.")).toEndWith("- Os projetos ficam em ~/code.");
-  expect(voiceRules(DEFAULTS, undefined, "")).toContain("A pessoa fala com você pelo microfone");
+  expect(voiceRules(DEFAULTS, "Ana", "- Os projetos ficam em ~/code.", "pt-BR")).toContain("Ana fala com você pelo microfone");
+  expect(voiceRules(DEFAULTS, "Ana", "- Os projetos ficam em ~/code.", "pt-BR")).toEndWith("- Os projetos ficam em ~/code.");
+  expect(voiceRules(DEFAULTS, undefined, "", "pt-BR")).toContain("A pessoa fala com você pelo microfone");
 });

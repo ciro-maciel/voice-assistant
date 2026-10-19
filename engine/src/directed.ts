@@ -8,14 +8,16 @@
 // not grow. A late or broken answer is "not for me": the words still go to the draft.
 import { EventEmitter } from "node:events";
 import { claudeBin } from "./brain";
-import { USER_NAME, WORKING_DIR } from "./config";
+import { LANGUAGE, UI_LANGUAGE, USER_NAME, WORKING_DIR } from "./config";
+import type { Language } from "./language";
+import { t } from "./strings";
 
 export type Verdict = { isDirected: boolean; reason: string };
 
 const RESET_AFTER = 30;
 export const TIMEOUT_MS = 4_000;
 
-export const CLASSIFIER_PROMPT = `
+const CLASSIFIER_PROMPT_PT = `
 Você decide se uma frase dita em voz alta, numa sala, foi dirigida a um assistente de voz.
 O assistente trabalha nos projetos de software de quem o usa (código, repositórios, apps, deploys,
 textos) e conversa com essa pessoa. A frase vem de reconhecimento de voz e pode ter palavras trocadas.
@@ -34,26 +36,54 @@ Responda só com uma linha de JSON, sem mais nada:
 {"para_mim": true ou false, "motivo": "até 12 palavras"}
 `.trim();
 
+const CLASSIFIER_PROMPT_EN = `
+You decide whether a sentence said out loud, in a room, was addressed to a voice assistant.
+The assistant works on the software projects of the person who uses it (code, repositories, apps,
+deploys, texts) and talks with that person. The sentence comes from speech recognition and may
+have wrong words.
+
+It is for the assistant: a request, question, order or instruction; an answer to a question the
+assistant just asked; the continuation or correction of a recent request; a comment on what the
+assistant is doing ("no, wait", "yes, go on").
+
+It is not for the assistant: talking to someone else or on the phone; thinking out loud without
+asking anything; sound from a video, music or TV; a fragment with no intent ("uh", "so", "ok");
+a sentence that makes no sense, typical of a transcription error.
+
+When in doubt, answer that it is not: the sentence is not lost, it is noted.
+
+Answer with one line of JSON only, nothing else:
+{"for_me": true or false, "reason": "up to 12 words"}
+`.trim();
+
+/// The classifier's instructions in the conversation's language.
+export const classifierPrompt = (lang: Language = LANGUAGE) => (lang === "pt-BR" ? CLASSIFIER_PROMPT_PT : CLASSIFIER_PROMPT_EN);
+
 /// The model's line → a verdict. Anything that is not the expected JSON is "not for me".
-export function parseVerdict(text: string): Verdict {
+/// Both prompts' keys are read: "for_me"/"reason" and "para_mim"/"motivo".
+export function parseVerdict(text: string, lang: Language = UI_LANGUAGE): Verdict {
   const match = text.match(/\{[\s\S]*\}/);
-  if (!match) return { isDirected: false, reason: "resposta sem JSON" };
+  if (!match) return { isDirected: false, reason: t(lang, "classifier.noJson") };
   try {
-    const data = JSON.parse(match[0]) as { para_mim?: unknown; motivo?: unknown };
-    return { isDirected: data.para_mim === true, reason: typeof data.motivo === "string" ? data.motivo : "" };
+    const data = JSON.parse(match[0]) as { for_me?: unknown; reason?: unknown; para_mim?: unknown; motivo?: unknown };
+    const reason = data.reason ?? data.motivo;
+    return { isDirected: (data.for_me ?? data.para_mim) === true, reason: typeof reason === "string" ? reason : "" };
   } catch {
-    return { isDirected: false, reason: "JSON inválido" };
+    return { isDirected: false, reason: t(lang, "classifier.badJson") };
   }
 }
 
 /// What the classifier reads: the last exchanges, the draft, and the new utterance.
-export function buildQuestion(utterance: string, recent: { role: string; text: string }[], draft: string[], user = USER_NAME ?? "Pessoa"): string {
-  const who = (role: string) => (role === "user" ? user : role === "assistant" ? "Assistente" : "Ferramenta");
+export function buildQuestion(utterance: string, recent: { role: string; text: string }[], draft: string[], user = USER_NAME,
+  lang: Language = LANGUAGE): string {
+  const pt = lang === "pt-BR";
+  const person = user ?? (pt ? "Pessoa" : "Person");
+  const who = (role: string) => (role === "user" ? person : role === "assistant" ? (pt ? "Assistente" : "Assistant") : (pt ? "Ferramenta" : "Tool"));
   const history = recent.filter((r) => r.role !== "tool").slice(-6).map((r) => `${who(r.role)}: ${r.text.slice(0, 300)}`);
   return [
-    history.length ? `Conversa recente:\n${history.join("\n")}` : "Conversa recente: nenhuma.",
-    draft.length ? `Anotado antes, ainda sem ação:\n${draft.map((d) => `- ${d}`).join("\n")}` : "",
-    `Frase nova: "${utterance}"`,
+    history.length ? `${pt ? "Conversa recente" : "Recent conversation"}:\n${history.join("\n")}` : pt ? "Conversa recente: nenhuma." : "Recent conversation: none.",
+    draft.length ? `${pt ? "Anotado antes, ainda sem ação" : "Noted before, not acted on yet"}:\n${draft.map((d) => `- ${d}`).join("\n")}` : "",
+    `${pt ? "Frase nova" : "New sentence"}: "${utterance}"`,
   ].filter(Boolean).join("\n\n");
 }
 
@@ -85,7 +115,7 @@ export class DirectedClassifier extends EventEmitter {
       const timer = setTimeout(() => {
         this.waiting = undefined;
         this.restart(); // a stuck session would make every next decision late too
-        resolve({ isDirected: false, reason: "o classificador demorou" });
+        resolve({ isDirected: false, reason: t(UI_LANGUAGE, "classifier.late") });
       }, TIMEOUT_MS);
       this.waiting = (text) => { clearTimeout(timer); resolve(parseVerdict(text)); };
       const stdin = this.proc!.stdin as import("bun").FileSink;
@@ -100,7 +130,7 @@ export class DirectedClassifier extends EventEmitter {
     this.proc = Bun.spawn([
       claudeBin(), "-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose",
       "--model", this.model, "--tools", "", "--setting-sources", "", "--strict-mcp-config",
-      "--no-session-persistence", "--system-prompt", CLASSIFIER_PROMPT,
+      "--no-session-persistence", "--system-prompt", classifierPrompt(),
     ], { cwd: WORKING_DIR, stdin: "pipe", stdout: "pipe", stderr: "ignore", env: { ...process.env, ASSISTANT_SESSION: "1" } });
     this.read(this.proc.stdout as ReadableStream<Uint8Array>, this.proc);
   }

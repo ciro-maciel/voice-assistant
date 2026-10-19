@@ -134,16 +134,7 @@ Issues e pull requests são bem-vindos. Veja o [CONTRIBUTING.md](CONTRIBUTING.md
 
 ## Mais de Ciro Cesar Maciel
 
-Eu construo software sozinho, com uma equipe de agentes de IA, e abro o que dá para abrir. São seis apps nativos para Mac, todos grátis, MIT, assinados e notarizados pela Apple, em inglês e português do Brasil:
-
-| App | O que faz |
-| --- | --- |
-| [Cleaner](https://github.com/ciro-maciel/cleaner) | O limpador de Mac que mostra tudo antes de apagar qualquer coisa |
-| [Screenshots](https://github.com/ciro-maciel/screenshots) | Captura, anotação e gravação de tela, sem nada sair do Mac |
-| [Speech to Text](https://github.com/ciro-maciel/speech-to-text) | Ditado por atalho, com o Whisper rodando no Mac |
-| [Assistant](https://github.com/ciro-maciel/voice-assistant) | O Claude Code por voz: chame pelo nome, peça, ouça a resposta · **este** |
-| [Windows](https://github.com/ciro-maciel/windows) | Janelas no lugar com um atalho ou levando até a borda |
-| [Text to Speech](https://github.com/ciro-maciel/text-to-speech) | Selecione um texto em qualquer app e ouça |
+Eu construo software sozinho, com uma equipe de agentes de IA, e abro o que dá para abrir. Seis apps nativos para Mac, todos grátis, MIT, assinados e notarizados pela Apple, em inglês e português do Brasil: [Cleaner](https://github.com/ciro-maciel/cleaner), o limpador de Mac que mostra tudo antes de apagar qualquer coisa · [Screenshots](https://github.com/ciro-maciel/screenshots), captura, anotação e gravação de tela, sem nada sair do Mac · [Speech to Text](https://github.com/ciro-maciel/speech-to-text), ditado por atalho, com o Whisper rodando no Mac · [Assistant](https://github.com/ciro-maciel/voice-assistant), o Claude Code por voz (este) · [Windows](https://github.com/ciro-maciel/windows), janelas no lugar com um atalho ou levando até a borda · [Text to Speech](https://github.com/ciro-maciel/text-to-speech), selecione um texto em qualquer app e ouça.
 
 Além dos apps: [ferramentas grátis no navegador](https://ciromaciel.click/tools?ref=oss-voice-assistant), [livros](https://ciromaciel.click/books?ref=oss-voice-assistant) e o [Infrastructure](https://myinfrastructure.click/?ref=oss-voice-assistant), a infraestrutura que os agentes já sabem operar.
 

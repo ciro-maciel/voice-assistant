@@ -138,7 +138,7 @@ jobs:
               run: bash scripts/release/publish-mac.sh voice-assistant Assistant "$RUNNER_TEMP/Assistant-$VERSION-macos.dmg" "$VERSION" 14
               env:
                   # No page on ciromaciel.click yet: the installer's "more at" points to the repository.
-                  PAGE: https://github.com/ciro-maciel/voice-assistant
+                  PAGE: https://ciromaciel.click/tools/voice-assistant
                   R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
                   R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
                   CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

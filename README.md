@@ -4,7 +4,7 @@
 
 Speech is transcribed on your Mac by a local Whisper; the audio never leaves it. Each request goes to one Claude Code session that stays open all day, and the answer is spoken sentence by sentence as it streams. A menu bar app for macOS 14+ on Apple Silicon, with the voice loop written in TypeScript on Bun.
 
-[Português](README.pt-BR.md)
+[Português](README.pt-BR.md) · [The page](https://ciromaciel.click/tools/voice-assistant?ref=oss-voice-assistant)
 
 ## Install
 

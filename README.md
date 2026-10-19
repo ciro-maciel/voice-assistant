@@ -2,6 +2,8 @@
 
 **A voice assistant for Claude Code: say its name, ask out loud, and it answers by voice while it works in your repositories.**
 
+One of [six free, open-source Mac apps](#more-from-ciro-cesar-maciel) by [Ciro Cesar Maciel](https://ciromaciel.click/?ref=oss-voice-assistant).
+
 Speech is transcribed on your Mac by a local Whisper; the audio never leaves it. Each request goes to one Claude Code session that stays open all day, and the answer is spoken sentence by sentence as it streams. A menu bar app for macOS 14+ on Apple Silicon, with the voice loop written in TypeScript on Bun.
 
 [Português](README.pt-BR.md) · [The page](https://ciromaciel.click/tools/voice-assistant?ref=oss-voice-assistant)
@@ -130,6 +132,19 @@ Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 
-Made by [Ciro Cesar Maciel](https://ciromaciel.click/?ref=oss-voice-assistant). I build tools and show how to use them: more [free tools](https://ciromaciel.click/tools?ref=oss-voice-assistant).
+## More from Ciro Cesar Maciel
 
-**Want the next one?** [Follow @ciro-maciel](https://github.com/ciro-maciel) for the next open-source tools, and click **Watch → Custom → Releases** above to hear about every new version.
+I build software on my own, with a team of AI agents, and open what I can. These are six native Mac apps, all free, MIT, signed and notarized by Apple, in English and Brazilian Portuguese:
+
+| App | What it does |
+| --- | --- |
+| [Cleaner](https://github.com/ciro-maciel/cleaner) | The Mac cleaner that shows you everything before it deletes anything |
+| [Screenshots](https://github.com/ciro-maciel/screenshots) | Capture, annotate and record the screen, with nothing leaving your Mac |
+| [Speech to Text](https://github.com/ciro-maciel/speech-to-text) | Dictation by shortcut, with Whisper running on your Mac |
+| [Assistant](https://github.com/ciro-maciel/voice-assistant) | Claude Code by voice: say its name, ask, hear the answer · **this one** |
+| [Windows](https://github.com/ciro-maciel/windows) | Snap windows into place with a shortcut or by dragging them to the edge |
+| [Text to Speech](https://github.com/ciro-maciel/text-to-speech) | Select text in any app and hear it read aloud |
+
+Beyond the apps: [free tools for the browser](https://ciromaciel.click/tools?ref=oss-voice-assistant), [books](https://ciromaciel.click/books?ref=oss-voice-assistant), and [Infrastructure](https://myinfrastructure.click/?ref=oss-voice-assistant), the infrastructure AI agents already know how to run.
+
+**Follow along.** [Follow @ciro-maciel](https://github.com/ciro-maciel) for the next open-source apps, click **Watch → Custom → Releases** above for every new version, and see how it is all made on [YouTube](https://www.youtube.com/@ciro-maciel) and at [ciromaciel.click](https://ciromaciel.click/?ref=oss-voice-assistant).

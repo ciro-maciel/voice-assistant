@@ -4,6 +4,8 @@
 
 Um dos [seis apps de Mac grátis e de código aberto](#mais-de-ciro-cesar-maciel) de [Ciro Cesar Maciel](https://ciromaciel.click/?ref=oss-voice-assistant).
 
+**[Veja o vídeo de 1 minuto](https://youtu.be/NZXiCfgTG7Y)** (em inglês)
+
 A fala é transcrita no seu Mac por um Whisper local; o áudio nunca sai dele. Cada pedido vai para uma sessão do Claude Code que fica aberta o dia todo, e a resposta é falada frase por frase, enquanto chega. Um app de barra de menus para macOS 14+ em Apple Silicon, com o motor de voz em TypeScript sobre o Bun.
 
 [English](README.md) · [A página](https://ciromaciel.click/tools/voice-assistant?ref=oss-voice-assistant)

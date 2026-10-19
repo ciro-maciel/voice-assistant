@@ -1,0 +1,10 @@
+.build/
+dist/
+build/
+node_modules/
+.DS_Store
+# Personal config never lives here: it is ~/.config/voice-assistant/config.json.
+config.json
+*.log
+*.mp3
+*.wav

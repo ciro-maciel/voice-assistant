@@ -1,0 +1,134 @@
+# Assistant by Ciro Cesar Maciel
+
+**Um assistente de voz para o Claude Code: diga o nome dele, peça em voz alta, e ele responde falando enquanto trabalha nos seus repositórios.**
+
+A fala é transcrita no seu Mac por um Whisper local; o áudio nunca sai dele. Cada pedido vai para uma sessão do Claude Code que fica aberta o dia todo, e a resposta é falada frase por frase, enquanto chega. Um app de barra de menus para macOS 14+ em Apple Silicon, com o motor de voz em TypeScript sobre o Bun.
+
+[English](README.md)
+
+## Instalar
+
+```bash
+curl -fsSL https://blob.ciromaciel.click/tools/voice-assistant/install.sh | bash
+```
+
+O script baixa o `.dmg` mais recente, copia o Assistant para `/Applications` e abre. Prefere a imagem de disco? [Baixe o Assistant-macos.dmg](https://blob.ciromaciel.click/tools/voice-assistant/latest/Assistant-macos.dmg). Ele é assinado com Developer ID e notarizado pela Apple.
+
+O Assistant usa ferramentas que você instala uma vez:
+
+```bash
+brew install sox whisper-cpp ffmpeg       # microfone, Whisper local, reprodução de áudio
+scripts/download-model.sh large-v3-turbo  # ou tiny, base, small, medium (de um clone deste repositório)
+```
+
+e o [Claude Code](https://docs.anthropic.com/en/docs/claude-code), com login feito. Na primeira abertura, libere o microfone.
+
+## Como conversar
+
+| Você | O Assistant |
+| --- | --- |
+| "Assistant, qual é o status do deploy?" | responde direto |
+| "Assistant" sozinho | toca um som e espera o pedido por 8 segundos |
+| responde depois que ele termina de falar | aceita sem o nome por 60 segundos |
+| "Assistant" enquanto ele fala ou trabalha | para na hora e escuta |
+| qualquer outra coisa | vai para um rascunho; diga "pode fazer" para executar, ou o nome |
+
+Antes de usar uma ferramenta, ele diz o que vai fazer. Ler, pesquisar e editar arquivos locais ele faz sem perguntar. Push, deploy, publicar, mandar mensagem a alguém, apagar e pagar esperam o seu sim falado naquela conversa; a lista é sua para mudar no app.
+
+Hoje os prompts, as regras de fala e a interface são em português.
+
+## Como funciona
+
+```
+microfone ─ app (eco cancelado) ou sox ─> engine/src/ear.ts ─ whisper-server (local) ─> texto
+texto ─> conversation.ts: tem o nome? a janela está aberta? é eco da minha voz? é para mim?
+pedido ─> brain.ts: uma sessão do Claude Code aberta o tempo todo (stream-json)
+resposta em streaming ─> sentences.ts: frase por frase ─> mouth.ts: Fish Audio ou a voz do Mac
+```
+
+- **Ouvido.** As falas são cortadas por energia, com piso de ruído adaptativo. As alucinações do Whisper no silêncio são descartadas. Com o app aberto, o processamento de voz do macOS tira a voz do próprio assistente do microfone, então dá para interromper com o som saindo pelo alto-falante.
+- **Cérebro.** `claude -p` em modo streaming, na pasta que você escolher, com as pastas extras que você adicionar. No mesmo dia, a mesma sessão: ela é retomada depois de reiniciar. Quando uma conversa termina, um Claude Code avulso escreve um resumo curto num diário local que a próxima sessão lê.
+- **É para mim?** Sem o nome, um modelo pequeno lê a frase e as últimas trocas e decide se você falava com ele (a partir de Mallidi et al., *Device-directed Utterance Detection*, 2018). Não sendo, a frase fica no rascunho, nunca se perde.
+- **Boca.** Com chave e id de voz da [Fish Audio](https://fish.audio), cada frase é sintetizada até duas à frente da que está tocando. Sem eles, fala a voz do próprio Mac.
+- **Painel.** <http://localhost:4780> mostra o que ele ouviu (e o que ignorou, e por quê), as ferramentas que usa e quanto custou cada resposta. Lá também dá para escrever em vez de falar.
+
+## O que sai do seu Mac
+
+| Sai | Para |
+| --- | --- |
+| O texto dos seus pedidos e os arquivos que o Claude Code lê | Anthropic, pelo seu Claude Code |
+| O texto de cada frase falada, só se você configurar a Fish | Fish Audio |
+
+Sua voz, as gravações e as transcrições ficam no Mac: histórico, diário e sessão moram em `~/Library/Application Support/voice-assistant`.
+
+## Configurar
+
+Tudo o que é pessoal fica num arquivo fora do repositório, `~/.config/voice-assistant/config.json` (ou o caminho em `VOICE_ASSISTANT_CONFIG`). Toda chave é opcional; o [`config.example.json`](config.example.json) tem todas.
+
+| Chave | O que faz | Padrão |
+| --- | --- | --- |
+| `wakeWords` | O nome primeiro, depois como o Whisper o escuta errado | `["assistant", "assistente"]` |
+| `userName` | Como as instruções se referem a você | "a pessoa" |
+| `workingDir` | Onde a sessão do Claude Code roda (o `CLAUDE.md` dela) | sua pasta pessoal |
+| `folders` | Pastas extras que ele pode ler e editar (`--add-dir`) | nenhuma |
+| `instructions` | Linhas somadas às regras de fala | nenhuma |
+| `inputPreference` | Microfones por nome, vence o primeiro conectado | o padrão do sistema |
+| `whisperModelsDir`, `whisperModel`, `whisperLanguage`, `whisperPrompt` | Whisper local | `…/voice-assistant/models`, `large-v3-turbo`, `pt` |
+| `fishVoiceId`, `voiceName`, `voiceSpeed`, `fishModel` | Voz da Fish Audio | nenhuma (voz do Mac), 1.0, `s2.1-pro` |
+| `fishApiKeyFile` | Um arquivo dotenv com `FISH_API_KEY=` para quando o app não tem o ambiente do shell | nenhum |
+| `fallbackVoice` | A voz do Mac (`say -v ?`) | Luciana |
+| `brainModel` | Modelo do Claude na conversa | `claude-haiku-5-5` |
+| `dataDir` | Histórico, diário, sessão e os ajustes do app | `~/Library/Application Support/voice-assistant` |
+
+Variáveis de ambiente vencem o arquivo: `FISH_API_KEY`, `FISH_VOICE_ID`, `ASSISTANT_MODEL`, `ASSISTANT_INPUT` (um microfone pelo nome) e `ASSISTANT_CLAUDE` (o binário `claude`). As telas de Ajustes do app trocam microfone, modelo do Whisper, voz, modelo, pastas e confirmações na hora, e guardam em `dataDir/settings.json`.
+
+## O hook do resumo falado (opcional)
+
+O [`hook/speak.sh`](hook/speak.sh) dá voz também às suas sessões comuns do Claude Code. Como hook de `Stop`, ele lê o fim de cada resposta e fala um marcador como `<!-- voz: Terminei e subi a correção. -->` (ou `voice:`), com os mesmos ajustes de voz. Sem marcador, sem som; `touch ~/.claude/voice/off` silencia.
+
+```json
+{ "hooks": { "Stop": [ { "hooks": [ { "type": "command", "command": "/caminho/para/voice-assistant/hook/speak.sh", "async": true, "timeout": 10 } ] } ] } }
+```
+
+Depois peça ao Claude, no seu `CLAUDE.md`, que termine as tarefas com esse marcador em uma a três frases faladas. `bun hook/player/server.ts` abre um player local em <http://127.0.0.1:4777> com cada linha dita, para ouvir de novo. Dentro da sessão do próprio assistente o hook fica calado.
+
+## Compilar você mesmo
+
+Você precisa das Command Line Tools do Xcode e do [Bun](https://bun.sh).
+
+```bash
+git clone https://github.com/ciro-maciel/voice-assistant.git
+cd voice-assistant
+scripts/build.sh                 # dist/Assistant.app, com o Bun e o motor dentro
+open dist/Assistant.app
+```
+
+Ou rode só o motor, num terminal com permissão de microfone (Terminal.app):
+
+```bash
+cd engine && bun start           # painel em http://localhost:4780
+bun test                         # nome, eco, janelas da conversa, frases, memória
+```
+
+O `scripts/build.sh` assina com um certificado Developer ID Application quando o seu chaveiro tem um. Se não tiver, o `scripts/signing-identity.sh` cria uma vez um certificado local: com ele, a permissão do microfone sobrevive a cada build; sem ele, o build é assinado ad hoc e o macOS pergunta de novo toda vez. O `scripts/dist.sh` sobe a versão, gera um `.dmg` e instala em `/Applications`.
+
+## Limites
+
+- Só Apple Silicon e macOS 14 ou mais novo.
+- Prompts e interface em português.
+- Um modelo só conversa e trabalha: numa tarefa longa, ele diz o que vai fazer e fica em silêncio até terminar.
+- Não abre sozinho no login.
+
+## Contribuir
+
+Issues e pull requests são bem-vindos. Veja o [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Licença
+
+[MIT](LICENSE). Fontes e ícones mantêm as próprias licenças: veja o [NOTICE](NOTICE).
+
+---
+
+Feito por [Ciro Cesar Maciel](https://ciromaciel.click/?ref=oss-voice-assistant). Eu construo ferramentas e mostro como usar: mais [ferramentas grátis](https://ciromaciel.click/tools?ref=oss-voice-assistant).
+
+**Quer a próxima?** [Siga @ciro-maciel](https://github.com/ciro-maciel) para as próximas ferramentas abertas, e clique em **Watch → Custom → Releases** acima para saber de cada versão nova.

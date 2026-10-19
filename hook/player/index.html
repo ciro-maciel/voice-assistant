@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voz</title>
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<style>
+  /* Zen design system: the gray ramp. Light only. */
+  :root {
+    --gray-0: #FFFFFF; --gray-1: #F9FAFB; --gray-2: #F3F4F6; --gray-3: #E5E7EB; --gray-4: #9CA3AF;
+    --gray-5: #6B7280; --gray-6: #4B5563; --gray-7: #374151; --gray-8: #1F2937; --gray-9: #11181C;
+    --rlg-border: 1px solid var(--gray-2);
+    --rlg-status-up: #16a34a;
+    --cols: 2.4fr 1fr 1fr 40px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--gray-0); color: var(--gray-6);
+    font-family: Montserrat, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.5;
+    stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+  /* Panel geometry: centered main. Narrower than the panel's 1280: a single-list tool reads better at 1040. */
+  main { max-width: 1040px; margin: 0 auto; padding: 40px 48px 80px; }
+
+  /* Page header: the canonical pair, panel version. */
+  .page-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 32px; }
+  .page-header .text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+  .crumb { font-size: 10px; font-weight: 800; color: var(--gray-4); text-transform: uppercase; letter-spacing: 1.5px; line-height: 1.4; }
+  h1 { margin: 0; font-size: 36px; font-weight: 900; line-height: 1; letter-spacing: -0.04em; color: var(--gray-9); }
+  .subtitle { font-size: 15px; font-weight: 500; line-height: 1.5; color: var(--gray-6); margin: 0; max-width: 620px; }
+  .actions { display: flex; gap: 16px; align-items: center; flex: none; }
+
+  /* Buttons: a label in a black rectangle. */
+  /* Compact buttons: the Zen dashboards' compact size (32 px / 11 px / 12 px). 40 px felt too big here. */
+  .btn { font: inherit; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; padding: 0 12px;
+    border-radius: 0; cursor: pointer; transition: transform .2s ease, filter .2s ease;
+    background: var(--gray-9); color: var(--gray-0); border: 1px solid var(--gray-9); }
+  .btn svg { width: 14px; height: 14px; }
+  .btn:hover { transform: translateY(-1px); filter: brightness(1.1); }
+  .btn.outline { background: transparent; color: var(--gray-9); border: 1px solid var(--gray-3); }
+  .btn:focus-visible, .row:focus-visible, .seg button:focus-visible { outline: 2px solid var(--gray-9); outline-offset: 2px; }
+
+  .status { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--gray-5); white-space: nowrap; }
+  .status i { width: 8px; height: 8px; border-radius: 50%; background: var(--gray-3); }
+  .status.up i { background: var(--rlg-status-up); }
+
+  /* The "now" block: a declared surface (Paper). */
+  .now { border: var(--rlg-border); padding: 24px; margin-bottom: 32px; }
+  .now .head { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; }
+  .now .meta { font-size: 13px; font-weight: 500; color: var(--gray-5); }
+  .now p { font-size: 20px; font-weight: 500; line-height: 1.5; color: var(--gray-7); margin: 10px 0 24px; max-width: 780px; }
+  .player { display: flex; align-items: center; gap: 16px; }
+  .play { width: 32px; padding: 0; flex: none; }
+  .play svg { width: 16px; height: 16px; }
+  .track { flex: 1; height: 24px; display: flex; align-items: center; cursor: pointer; }
+  .track div { position: relative; height: 2px; width: 100%; background: var(--gray-2); }
+  .track span { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--gray-9); }
+  .time { font-size: 13px; font-weight: 500; color: var(--gray-5); font-variant-numeric: tabular-nums; min-width: 84px; text-align: right; }
+  .speed { display: flex; align-items: center; gap: 16px; margin-top: 20px; flex-wrap: wrap; }
+  .seg { display: flex; }
+  .seg button { font: inherit; font-size: 11px; font-weight: 800; letter-spacing: 1px; height: 28px; min-width: 40px; padding: 0 8px;
+    background: transparent; color: var(--gray-7); border: 1px solid var(--gray-3); margin-left: -1px; border-radius: 0; cursor: pointer; }
+  .seg button:first-child { margin-left: 0; }
+  .seg button[aria-pressed="true"] { background: var(--gray-9); color: var(--gray-0); border-color: var(--gray-9); position: relative; }
+
+  /* The list: CSS Grid table. */
+  .table { border: var(--rlg-border); overflow: hidden; }
+  .thead, .row { display: grid; grid-template-columns: var(--cols); gap: 12px; align-items: center; }
+  .thead { background: var(--gray-1); padding: 12px 24px; border-bottom: var(--rlg-border);
+    font-size: 10px; font-weight: 800; color: var(--gray-5); text-transform: uppercase; letter-spacing: 1.5px; }
+  .row { padding: 14px 24px; border-bottom: var(--rlg-border); cursor: pointer; transition: background 120ms;
+    font-size: 13px; color: var(--gray-7); line-height: 1.4; }
+  .row:last-child { border-bottom: none; }
+  .row:hover, .row.sel { background: var(--gray-1); }
+  .row.playing { background: var(--gray-1); box-shadow: inset 2px 0 0 var(--gray-9); }
+  .row .t { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .row .m { display: none; }
+  .row .icon { width: 40px; height: 32px; display: flex; align-items: center; justify-content: center; color: var(--gray-9); }
+  .row.fresh { animation: fresh 1.6s ease-out; }
+  @keyframes fresh { from { background: var(--gray-2); } }
+
+  .empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 56px 24px; text-align: center; }
+  .empty strong { font-size: 10px; font-weight: 800; color: var(--gray-4); text-transform: uppercase; letter-spacing: 1.5px; }
+  .empty span { font-size: 13px; color: var(--gray-6); }
+
+  footer { display: flex; gap: 8px 20px; flex-wrap: wrap; margin-top: 24px; font-size: 12px; font-weight: 500; color: var(--gray-5); }
+  kbd { font: 500 11px/1 Montserrat, sans-serif; border: 1px solid var(--gray-3); padding: 3px 6px; color: var(--gray-7); margin-right: 4px; }
+
+  @media (max-width: 48em) {
+    main { padding: 24px 16px 56px; }
+    .page-header { flex-wrap: wrap; gap: 16px; }
+    .page-header .text { flex-basis: 100%; }
+    h1 { font-size: 28px; }
+    .actions { flex-basis: 100%; flex-wrap: wrap; gap: 12px; }
+    .actions .status { flex-basis: 100%; }
+    .actions .btn { flex: 1; }
+    .now { padding: 16px; }
+    .now p { font-size: 17px; }
+    .time { min-width: 0; }
+    :root { --cols: 1fr 40px; }
+    .thead .c2, .thead .c3, .row .c2, .row .c3 { display: none; }
+    .row { padding: 14px 16px; }
+    .thead { padding: 12px 16px; }
+    .row .m { display: block; margin-top: 4px; font-size: 12px; color: var(--gray-5); }
+    footer { display: none; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header class="page-header">
+    <div class="text">
+      <div class="crumb">Claude Code · Ferramentas</div>
+      <h1>Voz</h1>
+      <p class="subtitle">Cada fala que eu faço ao terminar uma tarefa fica guardada aqui. Ouça de novo, mude a velocidade ou me silencie.</p>
+    </div>
+    <div class="actions">
+      <span class="status" id="status"><i></i><span>Sem conexão</span></span>
+      <button class="btn outline" id="stop" title="Interromper a fala que está tocando agora (Esc)">
+        <svg viewBox="0 0 24 24"><path d="M5 7a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2z"/></svg>Parar
+      </button>
+      <button class="btn" id="mute" title="Ligar ou silenciar a fala automática"></button>
+    </div>
+  </header>
+
+  <section class="now" id="now" hidden aria-label="Fala em destaque">
+    <div class="head">
+      <div class="crumb" id="nowLabel">Última fala</div>
+      <div class="meta" id="nowMeta"></div>
+    </div>
+    <p id="nowText"></p>
+    <div class="player">
+      <button class="btn play" id="play" title="Tocar ou pausar (Espaço)"></button>
+      <div class="track" id="track" title="Ir para este ponto"><div><span id="fill"></span></div></div>
+      <div class="time" id="time">0:00 / 0:00</div>
+    </div>
+    <div class="speed">
+      <div class="crumb">Velocidade</div>
+      <div class="seg" id="speed"></div>
+    </div>
+  </section>
+
+  <section class="table" aria-label="Falas anteriores">
+    <div class="thead"><span>Fala</span><span class="c2">Projeto</span><span class="c3">Quando</span><span></span></div>
+    <div id="list"><div class="empty"><strong>Nenhuma fala ainda</strong><span>Elas aparecem aqui quando eu terminar uma tarefa.</span></div></div>
+  </section>
+
+  <footer>
+    <span><kbd>Espaço</kbd>tocar ou pausar</span>
+    <span><kbd>↑</kbd><kbd>↓</kbd>escolher</span>
+    <span><kbd>Enter</kbd>tocar a escolhida</span>
+    <span><kbd>←</kbd><kbd>→</kbd>5 segundos</span>
+    <span><kbd>Esc</kbd>parar tudo</span>
+  </footer>
+</main>
+
+<script>
+// Tabler icons, stroke 1.5.
+const ICON = {
+  play: '<svg viewBox="0 0 24 24"><path d="M7 4v16l13 -8z"/></svg>',
+  pause: '<svg viewBox="0 0 24 24"><path d="M6 6a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v12a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1z"/><path d="M14 6a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v12a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1z"/></svg>',
+  volume: '<svg viewBox="0 0 24 24"><path d="M15 8a5 5 0 0 1 0 8"/><path d="M17.7 5a9 9 0 0 1 0 14"/><path d="M6 15h-2a1 1 0 0 1 -1 -1v-4a1 1 0 0 1 1 -1h2l3.5 -4.5a.8 .8 0 0 1 1.5 .5v14a.8 .8 0 0 1 -1.5 .5l-3.5 -4.5"/></svg>',
+  volumeOff: '<svg viewBox="0 0 24 24"><path d="M15 8a5 5 0 0 1 1.912 4.934m-1.377 2.602a5 5 0 0 1 -.535 .464"/><path d="M17.7 5a9 9 0 0 1 2.362 11.086m-1.676 2.299a9 9 0 0 1 -.686 .615"/><path d="M9.069 5.054l.431 -.554a.8 .8 0 0 1 1.5 .5v2m0 4v8a.8 .8 0 0 1 -1.5 .5l-3.5 -4.5h-2a1 1 0 0 1 -1 -1v-4a1 1 0 0 1 1 -1h2l1.294 -1.664"/><path d="M3 3l18 18"/></svg>',
+};
+const SPEEDS = [1, 1.25, 1.5, 2];
+const $ = (id) => document.getElementById(id);
+const audio = new Audio();
+let items = [], current = null, selected = 0, muted = false;
+let rate = Number(safeGet("rate")) || 1;
+
+function safeGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
+function safeSet(k, v) { try { localStorage.setItem(k, v); } catch {} }
+const fmt = (s) => isFinite(s) ? `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}` : "0:00";
+const when = (iso) => new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function renderSpeed() {
+  $("speed").innerHTML = SPEEDS.map((s) =>
+    `<button aria-pressed="${s === rate}" data-s="${s}">${String(s).replace(".", ",")}×</button>`).join("");
+}
+$("speed").onclick = (e) => {
+  const s = Number(e.target.closest("button")?.dataset.s);
+  if (!s) return;
+  rate = s; audio.playbackRate = s; safeSet("rate", s); renderSpeed();
+};
+
+function renderMute() {
+  // The primary action says what clicking will do.
+  $("mute").innerHTML = muted ? `${ICON.volume}Ligar a fala` : `${ICON.volumeOff}Silenciar`;
+}
+$("mute").onclick = async () => {
+  muted = !muted; renderMute();
+  await fetch("/api/mute", { method: "POST", body: JSON.stringify({ muted }) });
+};
+$("stop").onclick = stopAll;
+function stopAll() { audio.pause(); fetch("/api/stop", { method: "POST" }); syncPlay(); }
+
+function setStatus(up) {
+  $("status").classList.toggle("up", up);
+  $("status").querySelector("span").textContent = up ? "Conectado" : "Sem conexão";
+}
+
+function renderNow() {
+  const item = current || items[0];
+  $("now").hidden = !item;
+  if (!item) return;
+  $("nowLabel").textContent = current && !audio.paused ? "Tocando" : current ? "Selecionada" : "Última fala";
+  $("nowMeta").textContent = `${when(item.at)}${item.project ? " · " + item.project : ""}`;
+  $("nowText").textContent = item.text;
+}
+
+function renderList() {
+  if (!items.length) return;
+  $("list").innerHTML = items.map((it, i) => {
+    const playing = current?.id === it.id;
+    return `<div class="row${i === selected ? " sel" : ""}${playing ? " playing" : ""}" data-i="${i}" role="button" tabindex="0"
+        aria-label="Tocar: ${esc(it.text)}">
+      <div><div class="t">${esc(it.text)}</div><div class="m">${when(it.at)}${it.project ? " · " + esc(it.project) : ""}</div></div>
+      <span class="c2">${esc(it.project) || "—"}</span>
+      <span class="c3">${when(it.at)}</span>
+      <span class="icon">${playing && !audio.paused ? ICON.pause : ICON.play}</span>
+    </div>`;
+  }).join("");
+}
+$("list").onclick = (e) => {
+  const row = e.target.closest(".row");
+  if (!row) return;
+  selected = Number(row.dataset.i);
+  toggle(items[selected]);
+};
+function markSelected() {
+  document.querySelectorAll(".row").forEach((r, i) => r.classList.toggle("sel", i === selected));
+  document.querySelector(".row.sel")?.scrollIntoView({ block: "nearest" });
+}
+
+function play(item) {
+  if (current?.id !== item.id) { audio.src = `/audio/${item.id}.mp3`; current = item; }
+  audio.playbackRate = rate;
+  audio.play();
+}
+function toggle(item) {
+  if (current?.id === item.id && !audio.paused) audio.pause(); else play(item);
+}
+function syncPlay() {
+  $("play").innerHTML = audio.paused ? ICON.play : ICON.pause;
+  renderNow(); renderList();
+}
+$("play").onclick = () => { const it = current || items[0]; if (it) toggle(it); };
+audio.onplay = audio.onpause = syncPlay;
+// Chapters of one narration share a `group`: when one ends, the next one (the newer neighbour) plays.
+audio.onended = () => {
+  const i = items.findIndex((it) => it.id === current?.id);
+  const next = items[i - 1];
+  if (current?.group && next?.group === current.group) play(next); else syncPlay();
+};
+audio.ontimeupdate = audio.onloadedmetadata = () => {
+  $("fill").style.width = `${(audio.currentTime / audio.duration) * 100 || 0}%`;
+  $("time").textContent = `${fmt(audio.currentTime)} / ${fmt(audio.duration)}`;
+};
+$("track").onclick = (e) => {
+  if (!audio.duration) return;
+  const r = e.currentTarget.getBoundingClientRect();
+  audio.currentTime = ((e.clientX - r.left) / r.width) * audio.duration;
+};
+
+document.addEventListener("keydown", (e) => {
+  if (e.target.closest("input, textarea")) return;
+  if (e.code === "Space") { e.preventDefault(); $("play").click(); }
+  else if (e.key === "ArrowDown") { e.preventDefault(); selected = Math.min(items.length - 1, selected + 1); markSelected(); }
+  else if (e.key === "ArrowUp") { e.preventDefault(); selected = Math.max(0, selected - 1); markSelected(); }
+  else if (e.key === "Enter" && items[selected]) { e.preventDefault(); play(items[selected]); }
+  else if (e.key === "ArrowRight") audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 5);
+  else if (e.key === "ArrowLeft") audio.currentTime = Math.max(0, audio.currentTime - 5);
+  else if (e.key === "Escape") stopAll();
+});
+
+async function load() {
+  const r = await fetch("/api/items").then((r) => r.json());
+  items = r.items; muted = r.muted;
+  renderMute(); syncPlay();
+}
+
+function connect() {
+  const es = new EventSource("/api/events");
+  es.onopen = () => setStatus(true);
+  es.onerror = () => setStatus(false);
+  es.addEventListener("item", (e) => {
+    const item = JSON.parse(e.data);
+    items.unshift(item); selected = 0;
+    if (audio.paused) current = null;   // the highlighted block follows the newest line
+    renderNow(); renderList();
+    document.querySelector(".row")?.classList.add("fresh");
+  });
+}
+
+renderSpeed(); load();
+if (!location.search.includes("noevents")) connect();   // noevents: for headless screenshots
+else setStatus(true);
+</script>
+</body>
+</html>

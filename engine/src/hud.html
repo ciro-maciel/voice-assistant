@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Assistant</title>
+<style>
+  @import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800;900&display=swap");
+  :root {
+    --gray-0: #FFFFFF; --gray-1: #F9FAFB; --gray-2: #F3F4F6; --gray-3: #E5E7EB; --gray-4: #9CA3AF;
+    --gray-5: #6B7280; --gray-6: #4B5563; --gray-7: #374151; --gray-8: #1F2937; --gray-9: #11181C;
+    --red-7: #B91C1C;
+  }
+  * { box-sizing: border-box; border-radius: 0; box-shadow: none; }
+  body { margin: 0; background: var(--gray-0); color: var(--gray-6); font: 500 15px/1.7 Montserrat, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 40px 24px 160px; }
+  header { display: flex; align-items: flex-start; gap: 20px; padding-bottom: 24px; border-bottom: 1px solid var(--gray-2); }
+  .label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: var(--gray-4); }
+  .state { font-size: 28px; font-weight: 900; letter-spacing: -0.04em; line-height: 1.1; color: var(--gray-9); margin-top: 8px; }
+  .hint { font-size: 15px; font-weight: 500; color: var(--gray-6); margin-top: 8px; }
+  .orb { width: 14px; height: 14px; margin-top: 10px; flex: none; border: 1px solid var(--gray-3); background: var(--gray-0); transition: background .2s, transform .1s; }
+  .orb.on { background: var(--gray-9); border-color: var(--gray-9); }
+  .orb.pulse { animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .45; } }
+  .actions { margin-left: auto; display: flex; gap: 8px; flex: none; }
+  button { font: 800 12px/1 Montserrat, sans-serif; text-transform: uppercase; letter-spacing: 1px; padding: 10px 14px; border: 1px solid var(--gray-2); background: var(--gray-0); color: var(--gray-9); cursor: pointer; }
+  button:hover { background: var(--gray-1); }
+  button[aria-pressed="true"] { background: var(--gray-9); border-color: var(--gray-9); color: var(--gray-0); }
+  button.primary { background: var(--gray-9); border-color: var(--gray-9); color: var(--gray-0); }
+  #log { display: flex; flex-direction: column; gap: 12px; padding-top: 24px; }
+  .msg { padding: 14px 16px; border: 1px solid var(--gray-2); background: var(--gray-0); white-space: pre-wrap; overflow-wrap: anywhere; font-size: 15px; }
+  .msg.user { align-self: flex-end; max-width: 85%; background: var(--gray-9); border-color: var(--gray-9); color: var(--gray-0); font-weight: 700; }
+  .msg.assistant { max-width: 92%; }
+  .meta { font-size: 12px; font-weight: 500; color: var(--gray-5); overflow-wrap: anywhere; }
+  .meta.error { color: var(--red-7); font-weight: 700; }
+  form { position: fixed; bottom: 0; left: 0; right: 0; background: var(--gray-0); border-top: 1px solid var(--gray-2); padding: 16px 24px; }
+  form div { max-width: 760px; margin: 0 auto; display: flex; gap: 8px; }
+  input { flex: 1; min-width: 0; font: 500 15px/1.5 Montserrat, sans-serif; padding: 12px 14px; border: 1px solid var(--gray-2); background: var(--gray-0); color: var(--gray-9); }
+  input::placeholder { color: var(--gray-4); }
+  input:focus { outline: none; border-color: var(--gray-9); }
+  button:focus-visible { outline: 1px solid var(--gray-9); outline-offset: 2px; }
+  @media (max-width: 520px) {
+    main { padding: 24px 16px 160px; }
+    header { flex-wrap: wrap; }
+    .actions { margin-left: 0; width: 100%; }
+    .actions button { flex: 1; }
+    .state { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="orb" id="orb"></div>
+    <div>
+      <div class="label">Assistant</div>
+      <div class="state" id="state">Conectando</div>
+      <div class="hint" id="hint">Diga o nome, ou aperte espaço aqui.</div>
+    </div>
+    <div class="actions">
+      <button id="mute" aria-pressed="false">Microfone</button>
+      <button id="stop">Parar</button>
+    </div>
+  </header>
+  <div id="log"></div>
+</main>
+<form id="form"><div><input id="input" placeholder="Ou escreva aqui" autocomplete="off"><button class="primary">Enviar</button></div></form>
+<script>
+  const STATES = {
+    waiting:   ["Disponível", false, false],
+    listening: ["Pode falar", true, true],
+    hearing:   ["Escutando", true, true],
+    thinking:  ["Pensando", true, true],
+    speaking:  ["Falando", true, true],
+  };
+  const $ = (id) => document.getElementById(id);
+  const log = $("log");
+  let reply = null;
+
+  function add(cls, text) {
+    const el = document.createElement("div");
+    el.className = cls;
+    el.textContent = text;
+    log.append(el);
+    el.scrollIntoView({ block: "end" });
+    return el;
+  }
+  const post = (path, body) => fetch(path, { method: "POST", headers: { "content-type": "application/json" }, body: body && JSON.stringify(body) });
+
+  const es = new EventSource("/events");
+  const on = (name, fn) => es.addEventListener(name, (e) => fn(JSON.parse(e.data)));
+  on("state", (s) => {
+    const [label, isActive, pulse] = STATES[s] ?? STATES.waiting;
+    $("state").textContent = label;
+    $("orb").classList.toggle("on", isActive);
+    $("orb").classList.toggle("pulse", pulse);
+  });
+  on("level", (l) => { $("orb").style.transform = `scale(${1 + l * 0.35})`; });
+  on("heard", ({ text, action, reason }) => { if (action === "ignore") add("meta", `ouvi e ignorei (${reason}): ${text}`); });
+  on("user", (text) => { add("msg user", text); reply = null; });
+  on("delta", (d) => { reply ??= add("msg assistant", ""); reply.textContent += d; reply.scrollIntoView({ block: "end" }); });
+  on("tool", (t) => { add("meta", t); reply = null; });
+  on("turnEnd", ({ costUsd }) => { if (costUsd) add("meta", `US$ ${costUsd.toFixed(4)} nesta resposta`); reply = null; });
+  on("status", (t) => add("meta", t));
+  on("error", (t) => add("meta error", t));
+  on("muted", (m) => { $("mute").setAttribute("aria-pressed", m); $("mute").textContent = m ? "Mudo" : "Microfone"; });
+
+  $("mute").onclick = () => post("/mute");
+  $("stop").onclick = () => post("/stop");
+  $("form").onsubmit = (e) => {
+    e.preventDefault();
+    const text = $("input").value.trim();
+    if (text) post("/say", { text });
+    $("input").value = "";
+  };
+  document.addEventListener("keydown", (e) => {
+    if (e.code === "Space" && document.activeElement !== $("input")) { e.preventDefault(); post("/listen"); }
+    if (e.code === "Escape") post("/stop");
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "wakeWords": ["jarvis", "jarbas", "jervis"],
+  "userName": "Ana",
+  "workingDir": "~/code/notes",
+  "folders": ["~/code/website", "~/code/api"],
+  "inputPreference": ["USB Microphone", "MacBook Pro Microphone"],
+  "whisperModelsDir": "~/Library/Application Support/voice-assistant/models",
+  "whisperModel": "large-v3-turbo",
+  "whisperLanguage": "pt",
+  "whisperPrompt": "{name}, olha o deploy do site e o commit no repositório, por favor.",
+  "fishVoiceId": "your-fish-audio-voice-id",
+  "voiceName": "Nome da voz",
+  "voiceSpeed": 1.2,
+  "fishModel": "s2.1-pro",
+  "fishApiKeyFile": "~/.config/voice-assistant/fish.env",
+  "fallbackVoice": "Luciana",
+  "brainModel": "claude-haiku-5-5",
+  "dataDir": "~/Library/Application Support/voice-assistant",
+  "instructions": "- Os projetos ficam lado a lado em ~/code."
+}

@@ -20,6 +20,8 @@ curl -fsSL https://blob.ciromaciel.click/tools/voice-assistant/install.sh | bash
 
 The script downloads the latest `.dmg`, copies Assistant to `/Applications` and opens it. Prefer the disk image? [Download Assistant-macos.dmg](https://blob.ciromaciel.click/tools/voice-assistant/latest/Assistant-macos.dmg). It is signed with Developer ID and notarized by Apple.
 
+With [Homebrew](https://github.com/ciro-maciel/homebrew-tap), which also installs sox, whisper-cpp and ffmpeg: `brew install --cask ciro-maciel/tap/ciro-voice-assistant`.
+
 Assistant drives tools you install once:
 
 ```bash

@@ -20,6 +20,8 @@ curl -fsSL https://blob.ciromaciel.click/tools/voice-assistant/install.sh | bash
 
 O script baixa o `.dmg` mais recente, copia o Assistant para `/Applications` e abre. Prefere a imagem de disco? [Baixe o Assistant-macos.dmg](https://blob.ciromaciel.click/tools/voice-assistant/latest/Assistant-macos.dmg). Ele é assinado com Developer ID e notarizado pela Apple.
 
+Com o [Homebrew](https://github.com/ciro-maciel/homebrew-tap), que também instala sox, whisper-cpp e ffmpeg: `brew install --cask ciro-maciel/tap/ciro-voice-assistant`.
+
 O Assistant usa ferramentas que você instala uma vez:
 
 ```bash

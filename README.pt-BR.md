@@ -6,6 +6,8 @@ Um dos [seis apps de Mac grátis e de código aberto](#mais-de-ciro-cesar-maciel
 
 **[Veja o vídeo de 1 minuto](https://youtu.be/NZXiCfgTG7Y)** (em inglês)
 
+[![As seen on Open Source Alternatives](https://www.opensourcealternatives.to/badge-osa.svg)](https://www.opensourcealternatives.to)
+
 ![Assistant: a tela Agora, com o estado, o microfone, a sessão do Claude Code, os tempos da última resposta e a conversa](docs/now.pt-BR.webp)
 
 A fala é transcrita no seu Mac por um Whisper local; o áudio nunca sai dele. Cada pedido vai para uma sessão do Claude Code que fica aberta o dia todo, e a resposta é falada frase por frase, enquanto chega. Um app de barra de menus para macOS 14+ em Apple Silicon, com o motor de voz em TypeScript sobre o Bun.

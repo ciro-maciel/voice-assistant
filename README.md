@@ -6,7 +6,7 @@ One of [six free, open-source Mac apps](#more-from-ciro-cesar-maciel) by [Ciro C
 
 **[Watch the 1-minute video](https://youtu.be/NZXiCfgTG7Y)**
 
-[![As seen on Open Source Alternatives](https://www.opensourcealternatives.to/badge-osa.svg)](https://www.opensourcealternatives.to)
+[![As seen on Open Source Alternatives](https://www.opensourcealternatives.to/badge-osa.svg)](https://www.opensourcealternatives.to) [![Assistant by Ciro Cesar Maciel | AlternativeTo](https://alternativeto.net/static/badges/badge-compact-color.svg)](https://alternativeto.net/software/assistant-by-ciro-cesar-maciel/about/?utm_source=badge&utm_medium=referral)
 
 ![Assistant: the Now screen, with the state, the microphone, the Claude Code session, the timings of the last answer and the conversation](docs/now.webp)
 

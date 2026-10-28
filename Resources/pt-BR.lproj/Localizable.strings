@@ -171,3 +171,4 @@
 "voice.voice" = "Voz";
 "voice.voice.hint" = "O id da voz na biblioteca da Fish. Enter salva.";
 "voice.voice.placeholder" = "id da voz";
+"logotype.help" = "%@ by Ciro Cesar Maciel. Mais ferramentas em ciromaciel.click";

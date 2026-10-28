@@ -27,6 +27,8 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$RESOURCES"
 swiftc -O ${SDK_ARGS[@]+"${SDK_ARGS[@]}"} -target arm64-apple-macosx14.0 -swift-version 5 -module-name AssistantBar \
     "$ROOT"/Sources/AssistantBar/*.swift -o "$APP/Contents/MacOS/AssistantBar"
+# The symbols out of the shipped binary: half its size. Crash reports still locate each frame.
+strip -rSTx "$APP"/Contents/MacOS/*
 # Every build carries VERSION; the window's footer reads it back.
 sed "s/__VERSION__/$VERSION/g" "$ROOT/Resources/Info.plist" > "$APP/Contents/Info.plist"
 # en.lproj and pt-BR.lproj: the interface in English and Brazilian Portuguese (the Mac's language picks).

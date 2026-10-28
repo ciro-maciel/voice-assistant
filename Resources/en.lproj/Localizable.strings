@@ -171,3 +171,4 @@
 "voice.voice" = "Voice";
 "voice.voice.hint" = "The voice's id in the Fish library. Return saves.";
 "voice.voice.placeholder" = "voice id";
+"logotype.help" = "%@ by Ciro Cesar Maciel. More tools at ciromaciel.click";

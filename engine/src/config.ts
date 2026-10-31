@@ -46,7 +46,7 @@ export type UserConfig = {
   instructions?: string;
 };
 
-const expand = (path: string) => (path.startsWith("~/") ? join(homedir(), path.slice(2)) : path);
+const expand = (path: string) => (path === "~" ? homedir() : path.startsWith("~/") ? join(homedir(), path.slice(2)) : path);
 
 export const CONFIG_FILE = expand(process.env.VOICE_ASSISTANT_CONFIG ?? "~/.config/voice-assistant/config.json");
 

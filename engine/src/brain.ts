@@ -70,7 +70,13 @@ export class Brain extends EventEmitter {
   private isSwitching = false;
   private isReady = false;
 
+  /// Opens a session unless one is already running: the restart backoff in main.ts can fire
+  /// after send() has opened one, and a second spawn would orphan it.
   start() {
+    if (this.proc) return;
+    // Turns sent to a session that died never end; the new one starts with none.
+    this.pending = 0;
+    this.isBusy = false;
     const args = [
       claudeBin(this.claudePath), "-p",
       "--input-format", "stream-json", "--output-format", "stream-json",
@@ -102,9 +108,12 @@ export class Brain extends EventEmitter {
       // A model switch is not a failure: start again at once, resuming the conversation.
       if (this.isSwitching) {
         this.isSwitching = false;
+        this.proc = undefined;
         this.start();
         return;
       }
+      // Gone: the next send() or the restart in main.ts opens a new one.
+      this.proc = undefined;
       this.emit("exit", code, this.stderrTail.trim());
     });
   }
@@ -129,7 +138,9 @@ export class Brain extends EventEmitter {
   }
 
   restart() {
-    this.proc?.kill();
+    const proc = this.proc;
+    this.proc = undefined; // its exit is ignored: the new session replaces it
+    proc?.kill();
     this.start();
   }
 
